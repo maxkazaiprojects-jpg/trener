@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Тренажёр по теории чисел</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Golos+Text:wght@400;500;600&family=PT+Serif:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: тетрадь в клетку — слева список задач (поля с красной линией), справа лист с задачей и проверкой */
+:root {
+  --paper: #fbfcff;
+  --grid: #e3e9f5;
+  --ink: #1b2b5e;
+  --text: #22263a;
+  --muted: #646b85;
+  --margin: #d9534f;
+  --line: #d3d9e8;
+  --card: #ffffff;
+  --ok: #1f8a4c;
+  --ok-bg: #e5f4ea;
+  --bad: #b8322f;
+  --bad-bg: #fbe8e7;
+  --part: #a36a00;
+  --part-bg: #fbf0d9;
+  --easy: #2f7d5b;
+  --hard: #2c55b8;
+  --ext: #b8322f;
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Golos Text", "Segoe UI", system-ui, sans-serif;
+  --f-math: "PT Serif", Georgia, "Times New Roman", serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #12151f; --grid: #1b2030; --ink: #a9bdf5; --text: #e3e6f0; --muted: #959cb5;
+    --margin: #e0716d; --line: #2a3046; --card: #181c29;
+    --ok: #5fcf8d; --ok-bg: #16301f; --bad: #f08a86; --bad-bg: #3a1c1c; --part: #f0b850; --part-bg: #33280f;
+    --easy: #5fcf8d; --hard: #84a6ff; --ext: #f08a86; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #12151f; --grid: #1b2030; --ink: #a9bdf5; --text: #e3e6f0; --muted: #959cb5;
+  --margin: #e0716d; --line: #2a3046; --card: #181c29;
+  --ok: #5fcf8d; --ok-bg: #16301f; --bad: #f08a86; --bad-bg: #3a1c1c; --part: #f0b850; --part-bg: #33280f;
+  --easy: #5fcf8d; --hard: #84a6ff; --ext: #f08a86; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--text);
+  font-family: var(--f-body);
+  font-size: 16px;
+  line-height: 1.55;
+}
+.wrap {
+  max-width: 1120px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+  display: grid; gap: 22px;
+}
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 14px; }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(22px, 4vw, 32px); color: var(--ink); margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.sub { color: var(--muted); margin: 4px 0 0; max-width: 60ch; }
+.score { font-family: var(--f-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.score b { color: var(--ink); font-size: 18px; }
+
+.modes { display: flex; flex-wrap: wrap; gap: 8px; }
+.mode {
+  font: 600 14px var(--f-body); padding: 9px 14px; border-radius: 8px; cursor: pointer;
+  border: 1.5px solid var(--line); background: var(--card); color: var(--text);
+  display: flex; gap: 8px; align-items: baseline;
+}
+.mode small { font: 400 12px var(--f-mono); color: var(--muted); }
+.mode[aria-pressed="true"] { border-color: currentColor; }
+.mode[data-m="easy"][aria-pressed="true"] { color: var(--easy); }
+.mode[data-m="hard"][aria-pressed="true"] { color: var(--hard); }
+.mode[data-m="ext"][aria-pressed="true"] { color: var(--ext); }
+.mode:focus-visible, button:focus-visible, input:focus-visible, label.drop:focus-within { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.main { display: grid; grid-template-columns: 250px 1fr; gap: 22px; align-items: start; }
+@media (max-width: 760px) { .main { grid-template-columns: 1fr; } }
+
+.list { display: grid; gap: 4px; position: relative; padding-left: 14px; }
+.list::before { content: ""; position: absolute; left: 4px; top: 0; bottom: 0; width: 2px; background: var(--margin); opacity: .7; }
+@media (max-width: 760px) { .list { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); } }
+.item {
+  display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 6px;
+  text-align: left; background: transparent; border: 0; border-radius: 6px; padding: 6px 8px; cursor: pointer;
+  font: 500 14px var(--f-body); color: var(--text); min-width: 0;
+}
+.item:hover { background: var(--card); }
+.item[aria-current="true"] { background: var(--card); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.item .n { font: 600 13px var(--f-mono); color: var(--muted); }
+.item .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dot { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--line); }
+.dot.ok { background: var(--ok); border-color: var(--ok); }
+.dot.part { background: var(--part); border-color: var(--part); }
+.dot.bad { background: transparent; border-color: var(--bad); }
+
+.sheet { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 24px clamp(16px, 3vw, 32px); display: grid; gap: 18px; min-width: 0; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font: 500 12px var(--f-mono); color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+.tag { padding: 2px 8px; border-radius: 4px; border: 1px solid var(--line); }
+.tag.lvl-easy { color: var(--easy); border-color: currentColor; }
+.tag.lvl-hard { color: var(--hard); border-color: currentColor; }
+.tag.lvl-ext { color: var(--ext); border-color: currentColor; }
+h2 { font-family: var(--f-display); font-weight: 500; font-size: 20px; color: var(--ink); margin: 0; text-wrap: balance; }
+.stmt { font-family: var(--f-math); font-size: 19px; line-height: 1.6; max-width: 65ch; }
+.stmt i, .box i { font-style: italic; }
+.box { font-family: var(--f-math); font-size: 17px; line-height: 1.6; max-width: 68ch; }
+.box p { margin: 0 0 8px; }
+
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button.btn {
+  font: 600 14px var(--f-body); padding: 9px 14px; border-radius: 8px; cursor: pointer;
+  border: 1.5px solid var(--ink); background: var(--ink); color: var(--card);
+}
+button.btn.ghost { background: transparent; color: var(--ink); }
+button.btn:disabled { opacity: .5; cursor: default; }
+input[type="text"] {
+  font: 400 16px var(--f-mono); padding: 9px 12px; border-radius: 8px; border: 1.5px solid var(--line);
+  background: var(--paper); color: var(--text); min-width: 0; flex: 1 1 200px;
+}
+.section { border-top: 1px dashed var(--line); padding-top: 16px; display: grid; gap: 10px; }
+.section h3 { margin: 0; font: 600 13px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.note { font-size: 13px; color: var(--muted); margin: 0; }
+a { color: var(--ink); }
+.verdict { padding: 10px 14px; border-radius: 8px; font-weight: 500; }
+.verdict.ok { background: var(--ok-bg); color: var(--ok); }
+.verdict.bad { background: var(--bad-bg); color: var(--bad); }
+.verdict.part { background: var(--part-bg); color: var(--part); }
+
+label.drop {
+  display: grid; place-items: center; gap: 4px; padding: 18px; border: 2px dashed var(--line); border-radius: 10px;
+  cursor: pointer; text-align: center; color: var(--muted); font-size: 14px;
+}
+label.drop.over { border-color: var(--ink); color: var(--ink); }
+label.drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.thumbs { display: flex; flex-wrap: wrap; gap: 8px; }
+.thumbs figure { margin: 0; position: relative; }
+.thumbs img { width: 92px; height: 92px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); display: block; }
+.thumbs button { position: absolute; top: 2px; right: 2px; border: 0; border-radius: 4px; background: var(--card); color: var(--bad); cursor: pointer; font: 600 12px var(--f-body); padding: 1px 6px; }
+.report { display: grid; gap: 10px; }
+.points { font: 700 28px var(--f-display); font-variant-numeric: tabular-nums; }
+.points small { font: 400 14px var(--f-mono); color: var(--muted); }
+.report ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.stream { white-space: pre-wrap; font: 400 13px var(--f-mono); color: var(--muted); max-height: 180px; overflow: auto; }
+footer { color: var(--muted); font-size: 13px; }
+@media (prefers-reduced-motion: no-preference) { .sheet { animation: rise .25s ease-out; } @keyframes rise { from { transform: translateY(4px); opacity: .6 } } }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Тренажёр по теории чисел</h1>
+      <p class="sub">Задачи уровня ВсОШ: делимость, остатки, простые, диофантовы уравнения. Ответ проверяется сразу, решение можно сфотографировать и отправить на проверку Claude.</p>
+    </div>
+    <div class="score" id="score"></div>
+  </header>
+
+  <nav class="modes" aria-label="Уровень">
+    <button class="mode" data-m="easy" aria-pressed="true">Лёгкий <small>задачи 1–2</small></button>
+    <button class="mode" data-m="hard" aria-pressed="false">Сложный <small>задачи 2–3</small></button>
+    <button class="mode" data-m="ext" aria-pressed="false">Экстремальный <small>задача 4</small></button>
+  </nav>
+
+  <div class="main">
+    <div class="list" id="list"></div>
+    <article class="sheet" id="sheet"></article>
+  </div>
+
+  <footer>Прогресс хранится в этом браузере. Проверка фото тратит лимиты вашего аккаунта Claude.</footer>
+</div>
+
+<script>
+// type: num — ответ набор целых чисел (порядок не важен); yn — да/нет; text — своя проверка; proof — только доказательство
+const PAIRS = s => { const n = (s.match(/\d+/g) || []).map(Number); const r = []; for (let i = 0; i + 1 < n.length; i += 2) r.push(n[i] + "," + n[i + 1]); return r; };
+const P = {
+easy: [
+{ t: "n·2ⁿ + 1 — квадрат", type: "num", v: [2, 3],
+  s: "Найдите все натуральные <i>n</i>, при которых число <i>n</i> · 2<sup><i>n</i></sup> + 1 является точным квадратом.",
+  h: "Если <i>n</i>·2<sup><i>n</i></sup> = (<i>k</i> − 1)(<i>k</i> + 1), то оба множителя чётные и один из них не делится на 4. Оцените второй.",
+  r: "<p>Пусть <i>n</i>·2<sup><i>n</i></sup> + 1 = <i>k</i>², тогда (<i>k</i> − 1)(<i>k</i> + 1) = <i>n</i>·2<sup><i>n</i></sup>, <i>k</i> нечётно. Из двух соседних чётных чисел одно ≡ 2 (mod 4), поэтому другое делится на 2<sup><i>n</i>−1</sup>: пусть это 2<sup><i>n</i>−1</sup><i>m</i>, тогда первое равно 2<i>n</i>/<i>m</i>. Они отличаются на 2: 2<sup><i>n</i>−1</sup><i>m</i> ≤ 2<i>n</i>/<i>m</i> + 2 ≤ 2<i>n</i> + 2. Отсюда 2<sup><i>n</i>−1</sup> ≤ 2<i>n</i> + 2, то есть <i>n</i> ≤ 4.</p><p>Перебор: <i>n</i> = 1 → 3, <i>n</i> = 2 → 9 = 3², <i>n</i> = 3 → 25 = 5², <i>n</i> = 4 → 65.</p><p><b>Ответ:</b> <i>n</i> = 2 и <i>n</i> = 3.</p>" },
+{ t: "2ᵖ + p² — простое", type: "num", v: [3],
+  s: "Найдите все простые <i>p</i>, при которых число 2<sup><i>p</i></sup> + <i>p</i>² тоже простое.",
+  h: "Рассмотрите остаток по модулю 3 при <i>p</i> &gt; 3.",
+  r: "<p><i>p</i> = 2: 8 — составное. <i>p</i> = 3: 17 — простое.</p><p>При <i>p</i> &gt; 3: <i>p</i>² ≡ 1 (mod 3), а <i>p</i> нечётно, поэтому 2<sup><i>p</i></sup> ≡ (−1)<sup><i>p</i></sup> ≡ 2 (mod 3). Сумма делится на 3 и больше 3.</p><p><b>Ответ:</b> <i>p</i> = 3.</p>" },
+{ t: "3ˣ − 2ʸ = 1", type: "text", ans: "(1, 1), (2, 3)",
+  check: s => { const p = PAIRS(s); return p.length === 2 && p.includes("1,1") && p.includes("2,3"); },
+  s: "Решите в натуральных числах уравнение 3<sup><i>x</i></sup> − 2<sup><i>y</i></sup> = 1. Запишите все пары (<i>x</i>, <i>y</i>).",
+  h: "При <i>y</i> ≥ 2 посмотрите на уравнение по модулю 4, а затем разложите разность квадратов.",
+  r: "<p><i>y</i> = 1: <i>x</i> = 1.</p><p><i>y</i> ≥ 2: 3<sup><i>x</i></sup> ≡ 1 (mod 4), а 3<sup><i>x</i></sup> ≡ (−1)<sup><i>x</i></sup>, значит <i>x</i> = 2<i>k</i>. Тогда (3<sup><i>k</i></sup> − 1)(3<sup><i>k</i></sup> + 1) = 2<sup><i>y</i></sup>: две степени двойки, отличающиеся на 2, — это 2 и 4. <i>k</i> = 1, <i>x</i> = 2, <i>y</i> = 3.</p><p><b>Ответ:</b> (1, 1), (2, 3).</p>" },
+{ t: "x² + 615 = 2ʸ", type: "text", ans: "(59, 12)",
+  check: s => { const p = PAIRS(s); return p.length === 1 && p[0] === "59,12"; },
+  s: "Решите в натуральных числах уравнение <i>x</i>² + 615 = 2<sup><i>y</i></sup>.",
+  h: "Модуль 3 покажет, что <i>y</i> чётно. Дальше — разность квадратов и делители 615 = 3 · 5 · 41.",
+  r: "<p>615 делится на 3, а <i>x</i>² ≢ 2 (mod 3). Если <i>y</i> нечётно, 2<sup><i>y</i></sup> ≡ 2 (mod 3) — невозможно. Значит <i>y</i> = 2<i>k</i> и (2<sup><i>k</i></sup> − <i>x</i>)(2<sup><i>k</i></sup> + <i>x</i>) = 615.</p><p>Разложения 615 = 1·615 = 3·205 = 5·123 = 15·41 дают сумму множителей 2<sup><i>k</i>+1</sup> = 616, 208, 128, 56. Степень двойки только 128: 2<sup><i>k</i></sup> = 64, <i>x</i> = (123 − 5)/2 = 59, <i>y</i> = 12. Проверка: 3481 + 615 = 4096.</p><p><b>Ответ:</b> (59, 12).</p>" },
+{ t: "51 число из первой сотни", type: "proof",
+  s: "Из чисел 1, 2, …, 100 выбрали 51 число. Докажите, что среди выбранных найдутся два числа, одно из которых делится на другое.",
+  h: "Каждое число однозначно записывается как 2<sup><i>k</i></sup> · <i>m</i>, где <i>m</i> нечётно. Сколько бывает разных <i>m</i>?",
+  r: "<p>Запишем каждое число как 2<sup><i>k</i></sup><i>m</i>, <i>m</i> нечётно. Нечётных <i>m</i> от 1 до 99 ровно 50, чисел 51 — у двух одинаковая нечётная часть: 2<sup><i>a</i></sup><i>m</i> и 2<sup><i>b</i></sup><i>m</i>, <i>a</i> &lt; <i>b</i>. Второе делится на первое.</p>" },
+{ t: "n⁴ + 4ⁿ — составное", type: "proof",
+  s: "Докажите, что при любом натуральном <i>n</i> &gt; 1 число <i>n</i>⁴ + 4<sup><i>n</i></sup> составное.",
+  h: "Для нечётного <i>n</i>: тождество Софи Жермен <i>a</i>⁴ + 4<i>b</i>⁴ = (<i>a</i>² + 2<i>b</i>² + 2<i>ab</i>)(<i>a</i>² + 2<i>b</i>² − 2<i>ab</i>).",
+  r: "<p>Чётное <i>n</i>: число чётное и больше 2.</p><p>Нечётное <i>n</i> = 2<i>t</i> + 1, <i>t</i> ≥ 1: 4<sup><i>n</i></sup> = 4(2<sup><i>t</i></sup>)⁴, <i>b</i> = 2<sup><i>t</i></sup>. Тогда <i>n</i>⁴ + 4<i>b</i>⁴ = (<i>n</i>² + 2<i>b</i>² + 2<i>nb</i>)(<i>n</i>² + 2<i>b</i>² − 2<i>nb</i>), и меньший множитель (<i>n</i> − <i>b</i>)² + <i>b</i>² ≥ <i>b</i>² ≥ 4. Оба множителя больше 1.</p>" },
+{ t: "Пифагоровы тройки и 60", type: "proof",
+  s: "Натуральные <i>a</i>, <i>b</i>, <i>c</i> удовлетворяют равенству <i>a</i>² + <i>b</i>² = <i>c</i>². Докажите, что <i>abc</i> делится на 60.",
+  h: "60 = 3 · 4 · 5. Для каждого множителя посмотрите на остатки квадратов.",
+  r: "<p><b>3:</b> квадраты по модулю 3 — 0 или 1. Если 3 ∤ <i>a</i>, 3 ∤ <i>b</i>, то <i>c</i>² ≡ 2 — невозможно.</p><p><b>5:</b> квадраты по модулю 5 — 0, 1, 4. Если 5 ∤ <i>a</i>, 5 ∤ <i>b</i>, то <i>a</i>² + <i>b</i>² ≡ 2, 3 или 0; 2 и 3 — не квадраты, 0 означает 5 | <i>c</i>.</p><p><b>4:</b> если <i>a</i>, <i>b</i> оба нечётны, <i>c</i>² ≡ 2 (mod 4) — невозможно. Если оба чётны — 4 | <i>ab</i>. Пусть <i>a</i> = 2<i>a</i>′ чётно, <i>b</i>, <i>c</i> нечётны: 4<i>a</i>′² = (<i>c</i> − <i>b</i>)(<i>c</i> + <i>b</i>), обе скобки чётные, и одна из них делится на 4 (их сумма 2<i>c</i> ≡ 2 mod 4). Значит 16 | 4<i>a</i>′², <i>a</i>′ чётно, 4 | <i>a</i>.</p><p>3, 4, 5 попарно взаимно просты, поэтому 60 | <i>abc</i>.</p>" },
+{ t: "НОД(n² + 1, (n+1)² + 1)", type: "text", ans: "5 при n ≡ 2 (mod 5), иначе 1", check: s => /5/.test(s) && /1/.test(s) && /2/.test(s),
+  s: "Найдите НОД(<i>n</i>² + 1, (<i>n</i> + 1)² + 1) в зависимости от натурального <i>n</i>.",
+  h: "Разность чисел равна 2<i>n</i> + 1. Выразите 4(<i>n</i>² + 1) через 2<i>n</i> + 1.",
+  r: "<p>Общий делитель <i>d</i> делит разность 2<i>n</i> + 1. 4(<i>n</i>² + 1) = (2<i>n</i> + 1)² − 2(2<i>n</i> + 1) + 5, значит <i>d</i> | 5. НОД = 5 ⇔ 5 | 2<i>n</i> + 1 ⇔ <i>n</i> ≡ 2 (mod 5); проверка: 5 и 10.</p><p><b>Ответ:</b> 5 при <i>n</i> ≡ 2 (mod 5), иначе 1.</p>" },
+{ t: "n² + n + 1 и 2025", type: "proof",
+  s: "Докажите, что ни при каком целом <i>n</i> число <i>n</i>² + <i>n</i> + 1 не делится на 2025.",
+  h: "2025 = 81 · 25. Достаточно доказать, что число не делится на 9. Домножьте на 4.",
+  r: "<p>4(<i>n</i>² + <i>n</i> + 1) = (2<i>n</i> + 1)² + 3. Если 9 | <i>n</i>² + <i>n</i> + 1, то (2<i>n</i> + 1)² ≡ 6 (mod 9), а квадраты по модулю 9 — только 0, 1, 4, 7.</p>" },
+{ t: "aᵇ = bᵃ", type: "text", ans: "(2, 4)",
+  check: s => { const p = PAIRS(s); return p.length === 1 && p[0] === "2,4"; },
+  s: "Найдите все пары натуральных чисел <i>a</i> &lt; <i>b</i>, для которых <i>a</i><sup><i>b</i></sup> = <i>b</i><sup><i>a</i></sup>.",
+  h: "Положите <i>b</i> = <i>ta</i> с рациональным <i>t</i> &gt; 1 и получите <i>a</i><sup><i>t</i>−1</sup> = <i>t</i>.",
+  r: "<p><i>a</i> ≥ 2. Пусть <i>b</i> = <i>ta</i>; извлекая корень степени <i>a</i>, получаем <i>a</i><sup><i>t</i></sup> = <i>ta</i>, то есть <i>a</i><sup><i>t</i>−1</sup> = <i>t</i>. Если <i>t</i> = <i>p</i>/<i>q</i> несократимо, то <i>a</i><sup><i>p</i>−<i>q</i></sup> = <i>p</i><sup><i>q</i></sup>/<i>q</i><sup><i>q</i></sup> — целое, значит <i>q</i> = 1. Тогда <i>t</i> = <i>a</i><sup><i>t</i>−1</sup> ≥ 2<sup><i>t</i>−1</sup>, что верно только при <i>t</i> = 2, и <i>a</i> = 2, <i>b</i> = 4.</p><p><b>Ответ:</b> (2, 4).</p>" },
+{ t: "x² + y² = 3z²", type: "proof",
+  s: "Докажите, что уравнение <i>x</i>² + <i>y</i>² = 3<i>z</i>² не имеет решений в натуральных числах.",
+  h: "Бесконечный спуск: из делимости на 3 получите меньшее решение.",
+  r: "<p>Возьмём решение с наименьшим <i>z</i>. Квадраты по модулю 3 — 0 и 1, поэтому из 3 | <i>x</i>² + <i>y</i>² следует 3 | <i>x</i> и 3 | <i>y</i>. Тогда 9 | 3<i>z</i>², 3 | <i>z</i>, и (<i>x</i>/3, <i>y</i>/3, <i>z</i>/3) — решение с меньшим <i>z</i>. Противоречие.</p>" },
+{ t: "Гармоническая сумма не целая", type: "proof",
+  s: "Докажите, что при любом <i>n</i> ≥ 2 число 1 + 1/2 + 1/3 + … + 1/<i>n</i> не является целым.",
+  h: "Пусть 2<sup><i>s</i></sup> — наибольшая степень двойки, не превосходящая <i>n</i>. Сколько чисел от 1 до <i>n</i> делятся на 2<sup><i>s</i></sup>?",
+  r: "<p>Пусть 2<sup><i>s</i></sup> ≤ <i>n</i> &lt; 2<sup><i>s</i>+1</sup>, <i>s</i> ≥ 1, и <i>M</i> — НОК нечётных чисел от 1 до <i>n</i>. Умножим сумму на <i>D</i> = 2<sup><i>s</i>−1</sup><i>M</i>. Только одно число <i>k</i> ≤ <i>n</i> делится на 2<sup><i>s</i></sup> — само 2<sup><i>s</i></sup>. Для остальных <i>k</i> степень двойки в <i>k</i> не больше <i>s</i> − 1, и <i>D</i>/<i>k</i> — целое. А <i>D</i>/2<sup><i>s</i></sup> = <i>M</i>/2 — не целое (<i>M</i> нечётно). Итого <i>D</i> · <i>H<sub>n</sub></i> = целое + <i>M</i>/2 — не целое, значит и <i>H<sub>n</sub></i> не целое.</p>" },
+],
+hard: [
+{ t: "n делит 2ⁿ − 1", type: "num", v: [1],
+  s: "Найдите все натуральные <i>n</i>, при которых 2<sup><i>n</i></sup> − 1 делится на <i>n</i>.",
+  h: "Наименьший простой делитель <i>p</i> числа <i>n</i> и порядок двойки по модулю <i>p</i>.",
+  r: "<p><i>n</i> = 1 подходит. Пусть <i>n</i> &gt; 1, <i>p</i> — наименьший простой делитель <i>n</i> (нечётный). Порядок <i>d</i> двойки по модулю <i>p</i> делит <i>n</i> и <i>p</i> − 1. Простые делители <i>p</i> − 1 меньше <i>p</i>, у <i>n</i> таких нет, поэтому НОД(<i>n</i>, <i>p</i> − 1) = 1 и <i>d</i> = 1 — но 2 ≢ 1 (mod <i>p</i>).</p><p><b>Ответ:</b> <i>n</i> = 1.</p>" },
+{ t: "n² | 3ⁿ + 1", type: "num", v: [1],
+  s: "Найдите все натуральные <i>n</i>, при которых 3<sup><i>n</i></sup> + 1 делится на <i>n</i>².",
+  h: "Сначала чётность <i>n</i> (модуль 4), затем наименьший простой делитель и порядок тройки.",
+  r: "<p>Если <i>n</i> чётно, то 4 | <i>n</i>², но 3<sup><i>n</i></sup> + 1 ≡ 1 + 1 = 2 (mod 4). Значит <i>n</i> нечётно. Пусть <i>n</i> &gt; 1 и <i>p</i> — его наименьший простой делитель, <i>p</i> ≥ 3; <i>p</i> ≠ 3, так как 3 ∤ 3<sup><i>n</i></sup> + 1. Из 3<sup><i>n</i></sup> ≡ −1 получаем 3<sup>2<i>n</i></sup> ≡ 1, порядок <i>d</i> делит НОД(2<i>n</i>, <i>p</i> − 1) = 2. Тогда <i>p</i> | 3² − 1 = 8 — противоречие.</p><p><b>Ответ:</b> <i>n</i> = 1.</p>" },
+{ t: "Бесконечно много n | 2ⁿ + 1", type: "proof",
+  s: "Докажите, что существует бесконечно много натуральных <i>n</i>, для которых 2<sup><i>n</i></sup> + 1 делится на <i>n</i>.",
+  h: "<i>n</i> = 3<sup><i>k</i></sup> и индукция; <i>a</i>³ + 1 = (<i>a</i> + 1)(<i>a</i>² − <i>a</i> + 1).",
+  r: "<p>Индукцией: 3<sup><i>k</i></sup> | 2<sup>3<sup><i>k</i></sup></sup> + 1. База: 3 | 9. Переход: <i>a</i> = 2<sup>3<sup><i>k</i></sup></sup>, 2<sup>3<sup><i>k</i>+1</sup></sup> + 1 = (<i>a</i> + 1)(<i>a</i>² − <i>a</i> + 1); <i>a</i> ≡ −1 (mod 3), поэтому второй множитель ≡ 3 ≡ 0 (mod 3). Получаем 3<sup><i>k</i>+1</sup>.</p>" },
+{ t: "(2ᵖ⁻¹ − 1)/p — квадрат", type: "num", v: [3, 7],
+  s: "Найдите все простые <i>p</i>, при которых число (2<sup><i>p</i>−1</sup> − 1)/<i>p</i> является точным квадратом.",
+  h: "<i>m</i> = (<i>p</i> − 1)/2, разложите 2<sup>2<i>m</i></sup> − 1. Множители взаимно просты.",
+  r: "<p><i>p</i> = 2 не подходит. При нечётном <i>p</i>: 2<sup><i>p</i>−1</sup> − 1 = (2<sup><i>m</i></sup> − 1)(2<sup><i>m</i></sup> + 1), множители нечётны, отличаются на 2 и взаимно просты. <i>p</i> делит один из них, значит другой — точный квадрат.</p><p>2<sup><i>m</i></sup> − 1 = <i>x</i>²: при <i>m</i> ≥ 2 это ≡ 3 (mod 4), значит <i>m</i> = 1, <i>p</i> = 3, частное 1.</p><p>2<sup><i>m</i></sup> + 1 = <i>y</i>²: 2<sup><i>m</i></sup> = (<i>y</i> − 1)(<i>y</i> + 1) — это 2 · 4, <i>m</i> = 3, <i>p</i> = 7, частное 63/7 = 9.</p><p><b>Ответ:</b> 3 и 7.</p>" },
+{ t: "y² = x³ + 7", type: "yn", v: "нет",
+  s: "Существуют ли целые <i>x</i>, <i>y</i>, для которых <i>y</i>² = <i>x</i>³ + 7?",
+  h: "Чётное <i>x</i> — модуль 8. Нечётное: <i>y</i>² + 1 = <i>x</i>³ + 8; какие простые могут делить <i>y</i>² + 1?",
+  r: "<p>Чётное <i>x</i>: <i>y</i>² ≡ 7 (mod 8) — невозможно.</p><p>Нечётное <i>x</i>: <i>y</i>² + 1 = (<i>x</i> + 2)(<i>x</i>² − 2<i>x</i> + 4), второй множитель (<i>x</i> − 1)² + 3 ≡ 3 (mod 4) и положителен, поэтому имеет простой делитель <i>q</i> ≡ 3 (mod 4). Тогда <i>y</i>² ≡ −1 (mod <i>q</i>), и по малой теореме Ферма 1 ≡ <i>y</i><sup><i>q</i>−1</sup> ≡ (−1)<sup>(<i>q</i>−1)/2</sup> = −1 — противоречие.</p><p><b>Ответ:</b> нет.</p>" },
+{ t: "(n − 1)! + 1 — степень n", type: "num", v: [2, 3, 5],
+  s: "Найдите все натуральные <i>n</i> &gt; 1, при которых (<i>n</i> − 1)! + 1 является натуральной степенью числа <i>n</i>.",
+  h: "<i>n</i> простое. Затем поделите (<i>p</i> − 1)! = <i>p</i><sup><i>k</i></sup> − 1 на <i>p</i> − 1 и сравните по модулю <i>p</i> − 1.",
+  r: "<p>Делитель 1 &lt; <i>d</i> &lt; <i>n</i> делил бы (<i>n</i> − 1)!, но не (<i>n</i> − 1)! + 1 = <i>n</i><sup><i>k</i></sup>. Значит <i>n</i> = <i>p</i> простое. 1! + 1 = 2, 2! + 1 = 3, 4! + 1 = 25 — подходят.</p><p><i>p</i> ≥ 7: (<i>p</i> − 2)! = <i>p</i><sup><i>k</i>−1</sup> + … + <i>p</i> + 1 ≡ <i>k</i> (mod <i>p</i> − 1). Так как <i>p</i> − 1 = 2<i>s</i>, 2 &lt; <i>s</i> ≤ <i>p</i> − 2, то <i>p</i> − 1 | (<i>p</i> − 2)!, откуда <i>k</i> ≥ <i>p</i> − 1 и <i>p</i><sup><i>k</i></sup> ≥ <i>p</i><sup><i>p</i>−1</sup> &gt; (<i>p</i> − 1)! + 1.</p><p><b>Ответ:</b> 2, 3, 5.</p>" },
+{ t: "2ⁿ | 3ⁿ − 1", type: "num", v: [1, 2, 4],
+  s: "Найдите все натуральные <i>n</i>, при которых 3<sup><i>n</i></sup> − 1 делится на 2<sup><i>n</i></sup>.",
+  h: "Найдите точную степень двойки в 3<sup><i>n</i></sup> − 1: для нечётного <i>n</i> и для <i>n</i> = 2<sup><i>s</i></sup><i>t</i>.",
+  r: "<p>Нечётное <i>n</i>: 3<sup><i>n</i></sup> − 1 ≡ 2 (mod 4), степень двойки ровно 1, значит <i>n</i> = 1.</p><p><i>n</i> = 2<sup><i>s</i></sup><i>t</i>, <i>s</i> ≥ 1, <i>t</i> нечётно: 3<sup><i>n</i></sup> − 1 = (3<sup><i>t</i></sup> − 1)(3<sup><i>t</i></sup> + 1)(3<sup>2<i>t</i></sup> + 1)…(3<sup>2<sup><i>s</i>−1</sup><i>t</i></sup> + 1). Множители дают степени двойки 1, 2 (3<sup><i>t</i></sup> + 1 ≡ 4 mod 8) и по 1 у остальных <i>s</i> − 1 штук: всего <i>s</i> + 2. Нужно 2<sup><i>s</i></sup><i>t</i> ≤ <i>s</i> + 2: это <i>s</i> = 1, <i>t</i> = 1 (<i>n</i> = 2) и <i>s</i> = 2, <i>t</i> = 1 (<i>n</i> = 4).</p><p><b>Ответ:</b> 1, 2, 4.</p>" },
+{ t: "Цифры 1 и 2, делится на 2ⁿ", type: "proof",
+  s: "Докажите, что для любого натурального <i>n</i> существует <i>n</i>-значное число, записанное только цифрами 1 и 2, которое делится на 2<sup><i>n</i></sup>.",
+  h: "Индукция: допишите слева к подходящему <i>n</i>-значному числу цифру 1 или 2.",
+  r: "<p>База: 2. Пусть <i>N</i> — <i>n</i>-значное из цифр 1, 2, <i>N</i> = 2<sup><i>n</i></sup><i>m</i>. Рассмотрим <i>d</i> · 10<sup><i>n</i></sup> + <i>N</i> = 2<sup><i>n</i></sup>(<i>d</i> · 5<sup><i>n</i></sup> + <i>m</i>), <i>d</i> ∈ {1, 2}. 5<sup><i>n</i></sup> нечётно: при нечётном <i>m</i> берём <i>d</i> = 1, при чётном <i>d</i> = 2 — скобка чётная, число делится на 2<sup><i>n</i>+1</sup>.</p>" },
+{ t: "Простые вида 4k + 1", type: "proof",
+  s: "Докажите, что простых чисел вида 4<i>k</i> + 1 бесконечно много.",
+  h: "Если <i>q</i> | <i>x</i>² + 1 и <i>q</i> нечётно, то <i>q</i> ≡ 1 (mod 4). Рассмотрите (2<i>p</i>₁<i>p</i>₂…<i>p<sub>k</sub></i>)² + 1.",
+  r: "<p>Лемма: если нечётное простое <i>q</i> делит <i>x</i>² + 1, то <i>q</i> ≡ 1 (mod 4). Иначе (<i>q</i> − 1)/2 нечётно, и 1 ≡ <i>x</i><sup><i>q</i>−1</sup> = (<i>x</i>²)<sup>(<i>q</i>−1)/2</sup> ≡ (−1)<sup>(<i>q</i>−1)/2</sup> = −1 (mod <i>q</i>).</p><p>Пусть <i>p</i>₁, …, <i>p<sub>k</sub></i> — все такие простые. <i>N</i> = (2<i>p</i>₁…<i>p<sub>k</sub></i>)² + 1 нечётно, и любой его простой делитель ≡ 1 (mod 4), но не равен ни одному <i>p<sub>i</sub></i> (иначе он делит 1). Противоречие.</p>" },
+{ t: "Делители чисел Ферма", type: "proof",
+  s: "Докажите, что любой простой делитель числа 2<sup>2<sup><i>n</i></sup></sup> + 1 имеет вид <i>k</i> · 2<sup><i>n</i>+1</sup> + 1.",
+  h: "Найдите порядок двойки по модулю этого простого.",
+  r: "<p>Пусть <i>q</i> | 2<sup>2<sup><i>n</i></sup></sup> + 1, <i>q</i> нечётно. 2<sup>2<sup><i>n</i></sup></sup> ≡ −1, 2<sup>2<sup><i>n</i>+1</sup></sup> ≡ 1. Порядок <i>d</i> делит 2<sup><i>n</i>+1</sup>, но не делит 2<sup><i>n</i></sup> (иначе −1 ≡ 1), значит <i>d</i> = 2<sup><i>n</i>+1</sup>. По малой теореме Ферма <i>d</i> | <i>q</i> − 1.</p>" },
+{ t: "Гармоническая сумма и p", type: "proof",
+  s: "Пусть <i>p</i> &gt; 2 — простое, и 1 + 1/2 + … + 1/(<i>p</i> − 1) = <i>m</i>/<i>n</i> — несократимая дробь. Докажите, что <i>m</i> делится на <i>p</i>.",
+  h: "Сгруппируйте 1/<i>k</i> и 1/(<i>p</i> − <i>k</i>).",
+  r: "<p>1/<i>k</i> + 1/(<i>p</i> − <i>k</i>) = <i>p</i>/(<i>k</i>(<i>p</i> − <i>k</i>)). Сумма равна <i>pA</i>/<i>B</i>, где <i>B</i> — произведение чисел, меньших <i>p</i>, то есть <i>p</i> ∤ <i>B</i>. После сокращения множитель <i>p</i> в числителе остаётся.</p>" },
+{ t: "2ⁿ + 12ⁿ + 2011ⁿ", type: "num", v: [1],
+  s: "Найдите все натуральные <i>n</i>, при которых 2<sup><i>n</i></sup> + 12<sup><i>n</i></sup> + 2011<sup><i>n</i></sup> — точный квадрат.",
+  h: "Чётные <i>n</i> — модуль 3, нечётные <i>n</i> ≥ 3 — модуль 4.",
+  r: "<p><i>n</i> = 1: 2025 = 45². Чётное <i>n</i>: по модулю 3 получаем 1 + 0 + 1 = 2. Нечётное <i>n</i> ≥ 3: по модулю 4 получаем 0 + 0 + 3 = 3. Ни 2 (mod 3), ни 3 (mod 4) не квадраты.</p><p><b>Ответ:</b> <i>n</i> = 1.</p>" },
+{ t: "p | 2ⁿ − n", type: "proof",
+  s: "Докажите, что для любого простого <i>p</i> существует бесконечно много натуральных <i>n</i>, для которых 2<sup><i>n</i></sup> − <i>n</i> делится на <i>p</i>.",
+  h: "Подберите <i>n</i>, которое делится на <i>p</i> − 1 и даёт остаток 1 по модулю <i>p</i>.",
+  r: "<p><i>p</i> = 2: любое чётное <i>n</i>. <i>p</i> нечётно: <i>n</i> = (<i>p</i> − 1)<sup>2<i>j</i></sup>, <i>j</i> = 1, 2, … Тогда <i>n</i> ≡ (−1)<sup>2<i>j</i></sup> = 1 (mod <i>p</i>), а <i>p</i> − 1 | <i>n</i>, поэтому 2<sup><i>n</i></sup> ≡ 1 (mod <i>p</i>). Итого 2<sup><i>n</i></sup> − <i>n</i> ≡ 0.</p>" },
+{ t: "n·2ᵏ − 7 — квадрат", type: "proof",
+  s: "Докажите, что для любого натурального <i>k</i> найдётся натуральное <i>n</i>, при котором <i>n</i> · 2<sup><i>k</i></sup> − 7 — точный квадрат.",
+  h: "Нужно нечётное <i>x</i> с 2<sup><i>k</i></sup> | <i>x</i>² + 7. Индукция: если делимость на 2<sup><i>k</i>+1</sup> не выполнена, замените <i>x</i> на <i>x</i> + 2<sup><i>k</i>−1</sup>.",
+  r: "<p>Достаточно нечётного <i>x</i> с 2<sup><i>k</i></sup> | <i>x</i>² + 7; тогда <i>n</i> = (<i>x</i>² + 7)/2<sup><i>k</i></sup>. Для <i>k</i> ≤ 3 подходит <i>x</i> = 1 (8). Переход для <i>k</i> ≥ 3: если 2<sup><i>k</i>+1</sup> ∤ <i>x</i>² + 7, то <i>x</i>² + 7 ≡ 2<sup><i>k</i></sup> (mod 2<sup><i>k</i>+1</sup>). Для <i>x</i>′ = <i>x</i> + 2<sup><i>k</i>−1</sup>: <i>x</i>′² + 7 = <i>x</i>² + 7 + 2<sup><i>k</i></sup><i>x</i> + 2<sup>2<i>k</i>−2</sup> ≡ 2<sup><i>k</i></sup>(1 + <i>x</i>) ≡ 0 (mod 2<sup><i>k</i>+1</sup>), так как <i>x</i> нечётно и 2<i>k</i> − 2 ≥ <i>k</i> + 1.</p>" },
+{ t: "Подряд идущие не степени простых", type: "proof",
+  s: "Докажите, что для любого <i>N</i> найдутся <i>N</i> подряд идущих натуральных чисел, ни одно из которых не является степенью простого.",
+  h: "Китайская теорема об остатках: пусть <i>x</i> + <i>i</i> делится на два разных простых.",
+  r: "<p>Возьмём различные простые <i>p</i>₁, <i>q</i>₁, …, <i>p<sub>N</sub></i>, <i>q<sub>N</sub></i>. По китайской теореме найдётся <i>x</i> с <i>x</i> ≡ −<i>i</i> (mod <i>p<sub>i</sub>q<sub>i</sub></i>) для всех <i>i</i>. Тогда <i>x</i> + <i>i</i> делится на два разных простых.</p>" },
+],
+ext: [
+{ t: "n² | 2ⁿ + 1", src: "IMO 1990", type: "num", v: [1, 3],
+  s: "Найдите все натуральные <i>n</i>, при которых (2<sup><i>n</i></sup> + 1)/<i>n</i>² — целое число.",
+  h: "Наименьший простой делитель <i>n</i> равен 3 (порядок двойки). Потом степень тройки в 2<sup><i>n</i></sup> + 1 и следующий наименьший простой делитель.",
+  r: "<p><i>n</i> нечётно. Пусть <i>n</i> &gt; 1, <i>p</i> — наименьший простой делитель. 2<sup>2<i>n</i></sup> ≡ 1 (mod <i>p</i>), порядок двойки делит НОД(2<i>n</i>, <i>p</i> − 1) = 2, значит <i>p</i> | 3, <i>p</i> = 3.</p><p>Степень тройки: при нечётном <i>n</i> v₃(2<sup><i>n</i></sup> + 1) = v₃(3) + v₃(<i>n</i>) = 1 + v₃(<i>n</i>) (лемма об уточнении показателя). Нужно 1 + v₃(<i>n</i>) ≥ 2v₃(<i>n</i>), то есть v₃(<i>n</i>) = 1, <i>n</i> = 3<i>m</i>, 3 ∤ <i>m</i>.</p><p>Если <i>m</i> &gt; 1, пусть <i>q</i> — наименьший простой делитель <i>m</i>, <i>q</i> ≥ 5. Порядок двойки по модулю <i>q</i> делит НОД(2<i>n</i>, <i>q</i> − 1), а из простых делителей <i>n</i> меньше <i>q</i> только 3, так что этот НОД делит 6. Значит <i>q</i> | 2⁶ − 1 = 63, <i>q</i> = 7. Но 2<sup><i>n</i></sup> mod 7 ∈ {1, 2, 4}, и 2<sup><i>n</i></sup> + 1 не делится на 7. Итак, <i>m</i> = 1.</p><p><b>Ответ:</b> 1 и 3.</p>" },
+{ t: "pq | 2ᵖ + 2^q", type: "text", ans: "(2, 2), (2, 3), (3, 2)",
+  check: s => { const p = PAIRS(s); return p.length === 3 && ["2,2", "2,3", "3,2"].every(x => p.includes(x)); },
+  s: "Найдите все пары простых чисел (<i>p</i>, <i>q</i>), для которых 2<sup><i>p</i></sup> + 2<sup><i>q</i></sup> делится на <i>pq</i>.",
+  h: "Если оба нечётны, то 2<sup><i>q</i>−1</sup> ≡ −1 (mod <i>p</i>). Сравните степени двойки в <i>p</i> − 1 и <i>q</i> − 1 через порядок.",
+  r: "<p><i>p</i> = 2: 2<i>q</i> | 4 + 2<sup><i>q</i></sup>. <i>q</i> = 2 подходит (8 делится на 4). Для нечётного <i>q</i>: 2<sup><i>q</i></sup> ≡ 2 (mod <i>q</i>), значит <i>q</i> | 6, <i>q</i> = 3 (12 делится на 6).</p><p>Оба нечётны. <i>p</i> = <i>q</i>: <i>p</i>² | 2<sup><i>p</i>+1</sup> — нет. <i>p</i> ≠ <i>q</i>: 2<sup><i>p</i></sup> ≡ 2 (mod <i>p</i>), откуда 2<sup><i>q</i>−1</sup> ≡ −1 (mod <i>p</i>). Порядок <i>d</i> двойки делит 2(<i>q</i> − 1), но не <i>q</i> − 1, поэтому v₂(<i>d</i>) = v₂(<i>q</i> − 1) + 1. А <i>d</i> | <i>p</i> − 1: v₂(<i>p</i> − 1) &gt; v₂(<i>q</i> − 1). Симметрично v₂(<i>q</i> − 1) &gt; v₂(<i>p</i> − 1). Противоречие.</p><p><b>Ответ:</b> (2, 2), (2, 3), (3, 2).</p>" },
+{ t: "ab + 1 | a² + b²", src: "IMO 1988", type: "proof",
+  s: "Натуральные <i>a</i> и <i>b</i> таковы, что <i>a</i>² + <i>b</i>² делится на <i>ab</i> + 1. Докажите, что частное является точным квадратом.",
+  h: "Прыжки Виета: зафиксируйте частное <i>k</i>, возьмите решение с минимальной суммой и рассмотрите второй корень квадратного уравнения по <i>a</i>.",
+  r: "<p>Пусть <i>k</i> не квадрат. Среди пар неотрицательных целых (<i>a</i>, <i>b</i>) с этим <i>k</i> возьмём пару с наименьшей суммой, <i>a</i> ≥ <i>b</i>. <i>a</i> — корень <i>t</i>² − <i>kbt</i> + <i>b</i>² − <i>k</i> = 0, второй корень <i>a</i>′ = <i>kb</i> − <i>a</i> = (<i>b</i>² − <i>k</i>)/<i>a</i> — целый.</p><p><i>a</i>′ = 0 даёт <i>k</i> = <i>b</i>². <i>a</i>′ &lt; 0 невозможно: тогда <i>a</i>′² − <i>kba</i>′ + <i>b</i>² − <i>k</i> ≥ <i>a</i>′² + <i>k</i> + <i>b</i>² − <i>k</i> &gt; 0. Значит <i>a</i>′ &gt; 0, а <i>a</i>′ = (<i>b</i>² − <i>k</i>)/<i>a</i> &lt; <i>a</i> — пара (<i>a</i>′, <i>b</i>) с меньшей суммой. Противоречие.</p>" },
+{ t: "4ab − 1 | (4a² − 1)²", src: "IMO 2007", type: "proof",
+  s: "Натуральные <i>a</i> и <i>b</i> таковы, что (4<i>a</i>² − 1)² делится на 4<i>ab</i> − 1. Докажите, что <i>a</i> = <i>b</i>.",
+  h: "Покажите, что 4<i>ab</i> − 1 | (<i>a</i> − <i>b</i>)², а затем прыжки Виета.",
+  r: "<p>По модулю 4<i>ab</i> − 1: <i>b</i>(4<i>a</i>² − 1) = <i>a</i> · 4<i>ab</i> − <i>b</i> ≡ <i>a</i> − <i>b</i>. Значит <i>b</i>²(4<i>a</i>² − 1)² ≡ (<i>a</i> − <i>b</i>)², и так как НОД(<i>b</i>, 4<i>ab</i> − 1) = 1, условие равносильно 4<i>ab</i> − 1 | (<i>a</i> − <i>b</i>)².</p><p>Пусть (<i>a</i> − <i>b</i>)² = <i>k</i>(4<i>ab</i> − 1), <i>k</i> ≥ 1, и среди таких пар с этим <i>k</i> выбрана пара с минимальной суммой, <i>a</i> &gt; <i>b</i>. <i>a</i> — корень <i>t</i>² − (2 + 4<i>k</i>)<i>bt</i> + <i>b</i>² + <i>k</i> = 0; второй корень <i>a</i>′ = (<i>b</i>² + <i>k</i>)/<i>a</i> &gt; 0 — целый. По минимальности <i>a</i>′ ≥ <i>a</i>, то есть <i>k</i> ≥ <i>a</i>² − <i>b</i>² ≥ 2<i>a</i> − 1.</p><p>С другой стороны, <i>k</i> = (<i>a</i> − <i>b</i>)²/(4<i>ab</i> − 1) &lt; <i>a</i>²/(4<i>a</i> − 1) &lt; <i>a</i>/3 + 1. Тогда 2<i>a</i> − 1 &lt; <i>a</i>/3 + 1, <i>a</i> &lt; 1,2 — противоречие с <i>a</i> &gt; <i>b</i> ≥ 1. Значит <i>a</i> = <i>b</i>.</p>" },
+{ t: "ab² + b + 7 | a²b + a + b", src: "IMO 1998", type: "text", ans: "(11, 1), (49, 1), (7t², 7t)",
+  check: s => { const p = PAIRS(s.replace(/7t²|7t\^2|7k²|7k\^2/g, "")); return /7\s*[tk]\s*(²|\^2)/.test(s) && p.includes("11,1") && p.includes("49,1"); },
+  s: "Найдите все пары натуральных чисел (<i>a</i>, <i>b</i>), для которых <i>a</i>²<i>b</i> + <i>a</i> + <i>b</i> делится на <i>ab</i>² + <i>b</i> + 7. (Бесконечную серию записывайте с параметром <i>t</i>.)",
+  h: "Рассмотрите <i>b</i>(<i>a</i>²<i>b</i> + <i>a</i> + <i>b</i>) − <i>a</i>(<i>ab</i>² + <i>b</i> + 7).",
+  r: "<p>Делитель <i>ab</i>² + <i>b</i> + 7 делит <i>b</i>(<i>a</i>²<i>b</i> + <i>a</i> + <i>b</i>) − <i>a</i>(<i>ab</i>² + <i>b</i> + 7) = <i>b</i>² − 7<i>a</i>.</p><p>Если <i>b</i>² − 7<i>a</i> &gt; 0: оно меньше <i>ab</i>² + <i>b</i> + 7 — не может делиться.</p><p>Если <i>b</i>² = 7<i>a</i>: <i>b</i> = 7<i>t</i>, <i>a</i> = 7<i>t</i>². Проверка: <i>a</i>²<i>b</i> + <i>a</i> + <i>b</i> = 7<i>t</i>(49<i>t</i>⁴ + <i>t</i> + 1), <i>ab</i>² + <i>b</i> + 7 = 7(49<i>t</i>⁴ + <i>t</i> + 1) — делится.</p><p>Если <i>b</i>² &lt; 7<i>a</i>: <i>ab</i>² + <i>b</i> + 7 ≤ 7<i>a</i> − <i>b</i>², откуда <i>b</i>² &lt; 7, <i>b</i> ∈ {1, 2}. <i>b</i> = 1: <i>a</i> + 8 | 7<i>a</i> − 1 = 7(<i>a</i> + 8) − 57, то есть <i>a</i> + 8 | 57: <i>a</i> = 11 или 49. <i>b</i> = 2: 4<i>a</i> + 9 | 7<i>a</i> − 4, тогда 4<i>a</i> + 9 | 7(4<i>a</i> + 9) − 4(7<i>a</i> − 4) = 79, 4<i>a</i> + 9 = 79 — <i>a</i> не целое.</p><p><b>Ответ:</b> (11, 1), (49, 1), (7<i>t</i>², 7<i>t</i>).</p>" },
+{ t: "Теорема Вольстенхолма", type: "proof",
+  s: "Пусть <i>p</i> ≥ 5 — простое, 1 + 1/2 + … + 1/(<i>p</i> − 1) = <i>m</i>/<i>n</i> — несократимая дробь. Докажите, что <i>m</i> делится на <i>p</i>².",
+  h: "После группировки 1/<i>k</i> + 1/(<i>p</i> − <i>k</i>) осталось доказать, что Σ 1/(<i>k</i>(<i>p</i> − <i>k</i>)) ≡ 0 (mod <i>p</i>). Обратные к 1, …, <i>p</i> − 1 по модулю <i>p</i> — перестановка.",
+  r: "<p>2<i>H</i> = Σ<sub><i>k</i>=1</sub><sup><i>p</i>−1</sup> (1/<i>k</i> + 1/(<i>p</i> − <i>k</i>)) = <i>p</i> · Σ 1/(<i>k</i>(<i>p</i> − <i>k</i>)). Осталось показать, что <i>S</i> = Σ 1/(<i>k</i>(<i>p</i> − <i>k</i>)) (знаменатель не делится на <i>p</i>) делится на <i>p</i> как остаток.</p><p>По модулю <i>p</i>: <i>k</i>(<i>p</i> − <i>k</i>) ≡ −<i>k</i>², так что <i>S</i> ≡ −Σ (<i>k</i>⁻¹)². Когда <i>k</i> пробегает 1, …, <i>p</i> − 1, <i>k</i>⁻¹ пробегает те же остатки, поэтому <i>S</i> ≡ −Σ <i>j</i>² = −(<i>p</i> − 1)<i>p</i>(2<i>p</i> − 1)/6 ≡ 0, так как НОД(6, <i>p</i>) = 1. Итого 2<i>H</i> = <i>p</i>² · <i>A</i>/<i>B</i> с <i>p</i> ∤ <i>B</i>, и <i>p</i>² | <i>m</i>.</p>" },
+{ t: "Взаимно простые среди 2ⁿ − 3", type: "proof",
+  s: "Докажите, что среди чисел 2<sup><i>n</i></sup> − 3 (<i>n</i> = 2, 3, …) можно выбрать бесконечную последовательность попарно взаимно простых чисел.",
+  h: "Пусть уже выбраны числа с произведением <i>M</i>. Возьмите <i>n</i>, кратное φ(<i>M</i>).",
+  r: "<p>Все числа 2<sup><i>n</i></sup> − 3 нечётны и не делятся на 3. Пусть выбраны <i>a</i>₁, …, <i>a<sub>k</sub></i> &gt; 1, <i>M</i> — их произведение (нечётно, взаимно просто с 2). Возьмём <i>n</i> = φ(<i>M</i>) · <i>s</i> настолько большим, что 2<sup><i>n</i></sup> − 3 больше всех выбранных. По теореме Эйлера 2<sup><i>n</i></sup> ≡ 1 (mod <i>M</i>), поэтому 2<sup><i>n</i></sup> − 3 ≡ −2 (mod <i>q</i>) для каждого простого <i>q</i> | <i>M</i>; <i>q</i> нечётно, значит <i>q</i> ∤ 2<sup><i>n</i></sup> − 3. Новое число взаимно просто со всеми предыдущими.</p>" },
+]};
+
+const LEVEL = { easy: "Лёгкий · задачи 1–2", hard: "Сложный · задачи 2–3", ext: "Экстремальный · задача 4" };
+const KEY = "nt-trainer-v1";
+let S = { mode: "easy", idx: { easy: 0, hard: 0, ext: 0 }, st: {} };
+try { const x = JSON.parse(localStorage.getItem(KEY)); if (x && x.st) S = Object.assign(S, x); } catch (e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+const $ = id => document.getElementById(id);
+const pid = (m, i) => m + "-" + i;
+const plain = h => { const d = document.createElement("div"); d.innerHTML = h.replace(/<sup>/g, "^(").replace(/<\/sup>/g, ")"); return d.textContent; };
+
+let photos = [], sample = null, imgOk = false, ctl = null;
+
+function setStatus(id, v, force) {
+  const order = { bad: 1, part: 2, ok: 3 };
+  if (force || !S.st[id] || order[v] > order[S.st[id]]) S.st[id] = v;
+  save(); renderList(); renderScore();
+}
+
+function renderScore() {
+  const all = ["easy", "hard", "ext"].map(m => P[m].filter((_, i) => S.st[pid(m, i)] === "ok").length + "/" + P[m].length);
+  $("score").innerHTML = `решено <b>${all[0]}</b> · <b>${all[1]}</b> · <b>${all[2]}</b>`;
+}
+
+function renderList() {
+  const m = S.mode;
+  $("list").innerHTML = P[m].map((p, i) => `<button class="item" data-i="${i}" aria-current="${i === S.idx[m]}">
+    <span class="n">${String(i + 1).padStart(2, "0")}</span><span class="t">${p.t}</span><span class="dot ${S.st[pid(m, i)] || ""}"></span></button>`).join("");
+}
+
+function renderSheet() {
+  const m = S.mode, i = S.idx[m], p = P[m][i], id = pid(m, i);
+  const answerUI = p.type === "proof" ? `<p class="note">Это задача на доказательство: проверка по фото решения ниже.</p>` : `
+    <form class="row" id="af"><input type="text" id="ans" autocomplete="off" placeholder="${p.type === "yn" ? "да или нет" : p.type === "num" ? "например: 2, 3" : "ваш ответ"}" aria-label="Ответ">
+    <button class="btn" type="submit">Проверить ответ</button></form><div id="av"></div>`;
+  $("sheet").innerHTML = `
+    <div class="meta"><span class="tag lvl-${m}">${LEVEL[m]}</span><span>№ ${i + 1} из ${P[m].length}</span>${p.src ? `<span class="tag">${p.src}</span>` : ""}<span>${p.type === "proof" ? "доказательство" : "ответ + обоснование"}</span></div>
+    <h2>${p.t}</h2>
+    <div class="stmt">${p.s}</div>
+    ${answerUI}
+    <div class="section"><h3>Проверка решения по фото</h3>
+      <label class="drop" id="drop"><input type="file" id="file" accept="image/*" multiple><b>Загрузите фото решения</b><span>нажмите или перетащите; можно несколько страниц</span></label>
+      <div class="thumbs" id="thumbs"></div>
+      <div class="row"><button class="btn" id="check" disabled>Проверить решение</button><button class="btn ghost" id="stop" hidden>Остановить</button></div>
+      <p class="note" id="snote">Claude оценит решение по шкале ВсОШ (0–7 баллов) и укажет ошибки.</p>
+      <div id="out"></div>
+    </div>
+    <div class="section"><h3>Подсказка и решение</h3>
+      <div class="row"><button class="btn ghost" id="hb">Подсказка</button><button class="btn ghost" id="rb">Показать решение</button>
+      <button class="btn ghost" id="nb">Следующая →</button></div>
+      <div class="box" id="hint" hidden><p>${p.h}</p></div>
+      <div class="box" id="sol" hidden>${p.r}</div>
+    </div>`;
+  photos = [];
+  if (p.type !== "proof") $("af").onsubmit = e => { e.preventDefault(); checkAnswer(p, id); };
+  $("hb").onclick = () => { $("hint").hidden = !$("hint").hidden; };
+  $("rb").onclick = () => { $("sol").hidden = false; if (!S.st[id]) setStatus(id, "bad"); };
+  $("nb").onclick = () => { S.idx[m] = (i + 1) % P[m].length; save(); renderList(); renderSheet(); };
+  $("file").onchange = e => addPhotos(e.target.files);
+  const drop = $("drop");
+  drop.ondragover = e => { e.preventDefault(); drop.classList.add("over"); };
+  drop.ondragleave = () => drop.classList.remove("over");
+  drop.ondrop = e => { e.preventDefault(); drop.classList.remove("over"); addPhotos(e.dataTransfer.files); };
+  $("check").onclick = () => checkPhoto(p, id);
+  $("stop").onclick = () => ctl?.abort();
+  applyCaps();
+}
+
+function checkAnswer(p, id) {
+  const raw = $("ans").value.trim().toLowerCase();
+  if (!raw) return;
+  let ok;
+  if (p.type === "num") {
+    const got = [...new Set((raw.match(/-?\d+/g) || []).map(Number))].sort((a, b) => a - b);
+    ok = got.length === p.v.length && got.every((x, k) => x === [...p.v].sort((a, b) => a - b)[k]);
+  } else if (p.type === "yn") ok = raw.replace(/[^а-яёa-z]/g, "").startsWith(p.v);
+  else ok = p.check(raw);
+  $("av").innerHTML = ok
+    ? `<div class="verdict ok">Ответ верный. Для полного балла нужно обоснование: загрузите фото решения.</div>`
+    : `<div class="verdict bad">Пока неверно. Проверьте, все ли случаи разобраны, или откройте подсказку.</div>`;
+  if (ok) setStatus(id, "part"); else if (!S.st[id]) setStatus(id, "bad");
+}
+
+function addPhotos(list) {
+  for (const f of list) if (f.type.startsWith("image/") && photos.length < 6) photos.push(f);
+  renderThumbs();
+}
+function renderThumbs() {
+  const box = $("thumbs"); box.innerHTML = "";
+  photos.forEach((f, k) => {
+    const fig = document.createElement("figure");
+    const img = document.createElement("img"); img.src = URL.createObjectURL(f); img.alt = "Страница " + (k + 1);
+    const del = document.createElement("button"); del.textContent = "×"; del.setAttribute("aria-label", "Убрать фото");
+    del.onclick = () => { photos.splice(k, 1); renderThumbs(); };
+    fig.append(img, del); box.append(fig);
+  });
+  $("check").disabled = !photos.length || !sample || !imgOk;
+}
+
+function applyCaps() {
+  const n = $("snote");
+  if (!n) return;
+  if (sample === null && window.__capsDone) {
+    n.innerHTML = 'Проверка решения по фото работает в версии на claude.ai: <a href="https://claude.ai/artifact/HKeicomExuz4nSbR4MhGUP" target="_blank" rel="noopener">открыть её</a>.';
+    $("drop").hidden = true; $("check").hidden = true;
+  }
+  else if (sample && !imgOk) n.textContent = "В этом окне нельзя отправлять изображения. Откройте страницу на claude.ai в браузере или приложении.";
+  renderThumbs();
+}
+
+const ERR = {
+  not_granted: "Доступ к Claude не разрешён для этой страницы.",
+  rate_limited: "Лимит запросов исчерпан. Попробуйте позже.",
+  session_expired: "Войдите в claude.ai заново.",
+  image_rejected: "Фото не подошло: попробуйте другой файл (JPEG или PNG до 20 МБ).",
+  images_unavailable: "В этом окне нельзя отправлять изображения.",
+  invalid_json: "Ответ получился нечитаемым. Нажмите «Проверить решение» ещё раз.",
+  refused: "Claude не стал проверять это изображение. Попробуйте более чёткое фото решения.",
+};
+
+async function checkPhoto(p, id) {
+  const out = $("out");
+  ctl = new AbortController();
+  $("check").disabled = true; $("stop").hidden = false;
+  out.innerHTML = `<p class="note">Читаю решение… обычно это 20–60 секунд.</p><div class="stream" id="stream"></div>`;
+  const prompt = `Ты — член жюри Всероссийской олимпиады школьников по математике. Проверь рукописное решение школьника на фото (страницы по порядку).
+
+Задача: ${plain(p.s)}
+
+Эталонное решение (для жюри, школьник его не видел; другие верные способы тоже засчитываются):
+${plain(p.r)}
+
+Критерии ВсОШ: 7 — полное верное решение; 6–5 — верное решение с мелкими недочётами; 4–3 — решение в целом верное, но есть существенные пробелы (например, не разобран случай, нет проверки); 2–1 — продвижение (верная идея, частный случай, только верный ответ с примером); 0 — неверно или нет продвижения. Только верный ответ без обоснования — не больше 1 балла.
+Если на фото не решение этой задачи или текст нечитаем — поставь 0 и скажи об этом в verdict.
+
+Ответь только JSON, по-русски, без LaTeX (пиши x², ≡, mod):
+{"score": 0-7, "verdict": "одна фраза — общий вывод", "good": ["что сделано верно"], "issues": ["конкретная ошибка или пробел и где она"], "next": "что исправить или дописать, 1–2 предложения"}`;
+  try {
+    const r = await sample.json(prompt, { images: photos, modelTier: "complex", signal: ctl.signal, cache: false,
+      onText: ({ text }) => { const s = $("stream"); if (s) s.textContent = text; } });
+    const sc = Math.max(0, Math.min(7, Math.round(Number(r.score) || 0)));
+    const cls = sc >= 6 ? "ok" : sc >= 3 ? "part" : "bad";
+    const li = a => (Array.isArray(a) ? a : []).map(x => `<li>${esc(String(x))}</li>`).join("");
+    out.innerHTML = `<div class="report">
+      <div class="points">${sc} <small>из 7 баллов</small></div>
+      <div class="verdict ${cls}">${esc(String(r.verdict || ""))}</div>
+      ${li(r.good) ? `<div><h3 class="note">Верно</h3><ul>${li(r.good)}</ul></div>` : ""}
+      ${li(r.issues) ? `<div><h3 class="note">Ошибки и пробелы</h3><ul>${li(r.issues)}</ul></div>` : ""}
+      ${r.next ? `<p><b>Что дальше:</b> ${esc(String(r.next))}</p>` : ""}</div>`;
+    setStatus(id, cls, cls === "ok");
+  } catch (e) {
+    if (e.code === "cancelled") out.innerHTML = `<p class="note">Проверка остановлена.</p>`;
+    else out.innerHTML = `<div class="verdict bad">${ERR[e.code] || "Не удалось проверить: сбой связи. Попробуйте ещё раз."}</div>`;
+    if (["not_granted", "sampling_disabled", "images_unavailable"].includes(e.code)) imgOk = false;
+  } finally {
+    $("stop").hidden = true; renderThumbs();
+  }
+}
+const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+document.querySelectorAll(".mode").forEach(b => b.onclick = () => {
+  S.mode = b.dataset.m; save();
+  document.querySelectorAll(".mode").forEach(x => x.setAttribute("aria-pressed", x === b));
+  renderList(); renderSheet();
+});
+$("list").onclick = e => { const b = e.target.closest(".item"); if (!b) return; S.idx[S.mode] = +b.dataset.i; save(); renderList(); renderSheet(); };
+document.querySelectorAll(".mode").forEach(x => x.setAttribute("aria-pressed", x.dataset.m === S.mode));
+renderScore(); renderList(); renderSheet();
+
+(async () => {
+  try {
+    sample = window.claude ? await window.claude.use("sample") : null;
+    if (sample) { const lim = await sample.limits().catch(() => null); imgOk = !!lim?.images; }
+  } catch (e) { sample = null; }
+  window.__capsDone = true;
+  applyCaps();
+})();
+</script>
+
+</body>
+</html>
