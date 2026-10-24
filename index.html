@@ -81,6 +81,7 @@ i { font-style: italic; }
 
 .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .btn { font: 600 15px var(--f-body); padding: 10px 16px; border-radius: 9px; cursor: pointer; border: 2px solid var(--accent); background: var(--accent); color: var(--accent-ink); }
+a.btn { text-decoration: none; display: inline-block; }
 .btn.ghost { background: transparent; color: var(--text); border-color: var(--line); }
 .btn.ghost:hover { border-color: var(--muted); }
 .btn:disabled { opacity: .45; cursor: default; }
@@ -325,6 +326,7 @@ P.ext.push(
 );
 
 const ARTIFACT = "https://claude.ai/artifact/HKeicomExuz4nSbR4MhGUP";
+const SOL = "https://maxkazaiprojects-jpg.github.io/trener/sol/";
 const LV = { easy: "лёгкий", hard: "сложный", ext: "экстремальный" };
 const ALL = [];
 for (const m of ["easy", "hard", "ext"]) for (const p of P[m]) { p.lvl = m; p.id = p.y + "-" + p.n; ALL.push(p); }
@@ -397,14 +399,13 @@ function renderCard(p) {
       <div id="out"></div>
     </div>
     <div class="section"><h3>Подсказка и решение</h3>
-      <div class="row"><button class="btn ghost" id="hb">Подсказка</button><button class="btn ghost" id="rb">Решение</button>${next}</div>
+      <div class="row"><button class="btn ghost" id="hb">Подсказка</button><a class="btn ghost" id="rb" href="${SOL}${encodeURIComponent(p.id)}.pdf" target="_blank" rel="noopener">Решение (PDF)</a>${next}</div>
       <div class="box" id="hint" hidden><p>${p.h}</p></div>
-      <div class="box" id="sol" hidden>${p.r}</div>
     </div>`;
   photos = [];
   if (p.type !== "proof") $("af").onsubmit = e => { e.preventDefault(); checkAnswer(p); };
   $("hb").onclick = () => { $("hint").hidden = !$("hint").hidden; };
-  $("rb").onclick = () => { $("sol").hidden = false; if (!S.st[p.id]) setStatus(p.id, "bad"); };
+  $("rb").onclick = () => { if (!S.st[p.id]) setStatus(p.id, "bad"); };
   if ($("nb")) $("nb").onclick = () => { S.cur[S.mode] = pick(S.mode, [p.id]); save(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); };
   $("file").onchange = e => addPhotos(e.target.files);
   const drop = $("drop");
