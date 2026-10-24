@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>Тренажёр по теории чисел</title>
+<title>Тренажёр ВсОШ</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Golos+Text:wght@400;500;600&family=PT+Serif:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
@@ -109,6 +109,19 @@ label.drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .summary .line { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding: 6px 0; font-variant-numeric: tabular-nums; }
 footer { color: var(--muted); font-size: 13px; display: grid; gap: 4px; }
 @media (prefers-reduced-motion: no-preference) { .card { animation: rise .2s ease-out; } @keyframes rise { from { transform: translateY(6px); opacity: .5 } } }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.bar .lbl { font: 600 12px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); min-width: 64px; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 600 14px var(--f-body); color: var(--text); background: var(--panel); border: 2px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.modes { grid-template-columns: repeat(3, 1fr); }
+.view { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.view .mode small { white-space: normal; }
+.paper { background: #fff; border-radius: 10px; padding: 10px; }
+.paper img { display: block; width: 100%; height: auto; }
+select { font: 600 15px var(--f-body); background: var(--bg); color: var(--text); border: 2px solid var(--line); border-radius: 9px; padding: 9px 10px; }
+.day { display: grid; gap: 8px; }
+.daytitle { font: 600 13px var(--f-mono); color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
 </style>
 </head>
 <body>
@@ -117,24 +130,29 @@ footer { color: var(--muted); font-size: 13px; display: grid; gap: 4px; }
 <div class="wrap">
   <header>
     <div>
-      <h1>Теория чисел <span>ВсОШ</span></h1>
-      <p class="sub">Задачи 10 класса заключительного этапа 1993–2026. Тренажёр сам выбирает задачу; ответ проверяется сразу, решение — по фото.</p>
+      <h1>Тренажёр <span>ВсОШ</span></h1>
+      <p class="sub">Задачи заключительного этапа 1993–2026 по математике. Условия и решения — из официальных сборников. Тренажёр сам выбирает задачу; ответ и решение проверяются по фото.</p>
     </div>
     <div class="stats" id="stats"></div>
   </header>
 
-  <nav class="modes" aria-label="Режим">
-    <button class="mode" data-m="easy">Лёгкий <small>задачи 10.1 и 10.5</small></button>
-    <button class="mode" data-m="hard">Сложный <small>10.2, 10.3, 10.6, 10.7</small></button>
-    <button class="mode" data-m="ext">Экстремальный <small>задачи 10.4 и 10.8</small></button>
-    <button class="mode" data-m="mock">Пробник <small>4 задачи, 4 часа</small></button>
+  <div class="bar"><span class="lbl">Класс</span><div class="seg" id="grades"></div></div>
+  <div class="view" id="views">
+    <button class="mode" data-v="train">Тренировка <small>по теме и уровню, задачи по одной</small></button>
+    <button class="mode" data-v="var">Пробник <small>вариант одного года: 8 задач, 2 дня по 5 часов</small></button>
+  </div>
+  <div class="bar" id="topicbar"><span class="lbl">Тема</span><div class="seg" id="topics"></div></div>
+  <nav class="modes" id="levels" aria-label="Уровень">
+    <button class="mode" data-m="easy">Лёгкий <small>задачи 1 и 5</small></button>
+    <button class="mode" data-m="hard">Сложный <small>задачи 2, 3, 6, 7</small></button>
+    <button class="mode" data-m="ext">Экстремальный <small>задачи 4 и 8</small></button>
   </nav>
 
   <div class="mockbar" id="mockbar" hidden></div>
   <article class="card" id="card"></article>
 
   <footer>
-    <span>Источники: сборник «Всероссийские олимпиады школьников по математике 1993–2006» (МЦНМО, 2007) и материалы заключительных этапов на olympiads.mccme.ru. Решения изложены по официальным, местами сокращённо.</span>
+    <span>Источники: «Всероссийские олимпиады школьников по математике 1993–2006» (МЦНМО, 2007) и сборники заключительных этапов 2011–2026 (olympiads.mccme.ru). За 2007–2010 и 2012–2013 задач пока нет.</span>
     <span>Прогресс хранится в этом браузере.</span>
   </footer>
 </div>
@@ -325,71 +343,111 @@ P.ext.push(
   r: "<p><b>Ответ:</b> существует.</p><p>Пусть <i>R</i> = 11…1 — число из единиц, <i>n</i> = 13<i>R</i> = 144…43. Переставив первую 1 и последнюю 3, получим 344…41 = 31<i>R</i>. Если <i>R</i> делится на 13 · 31 = 403, то простые делители обоих чисел совпадают с простыми делителями <i>R</i>.</p><p>Такое <i>R</i> из хотя бы 1000 единиц существует: среди чисел 10<sup>1000<i>i</i></sup>, <i>i</i> = 0, …, 403, два дают одинаковый остаток по модулю 403, разность 10<sup>1000<i>a</i></sup>(10<sup>1000(<i>b</i>−<i>a</i>)</sup> − 1) делится на 403, и так как НОД(403, 90) = 1, на 403 делится (10<sup>1000(<i>b</i>−<i>a</i>)</sup> − 1)/9 — число из 1000(<i>b</i> − <i>a</i>) единиц.</p>" },
 );
 
+</script>
+<script>
 const ARTIFACT = "https://claude.ai/artifact/HKeicomExuz4nSbR4MhGUP";
 const SOL = "https://maxkazaiprojects-jpg.github.io/trener/sol/";
 const LV = { easy: "лёгкий", hard: "сложный", ext: "экстремальный" };
-const ALL = [];
-for (const m of ["easy", "hard", "ext"]) for (const p of P[m]) { p.lvl = m; p.id = p.y + "-" + p.n; ALL.push(p); }
-const BY = Object.fromEntries(ALL.map(p => [p.id, p]));
-const KEY = "nt-vsosh-v2";
-let S = { mode: "easy", cur: {}, seen: {}, st: {}, mock: null };
+const TOP = { nt: "Теория чисел", alg: "Алгебра", geo: "Геометрия", comb: "Комбинаторика" };
+const DAY_MS = 5 * 3600 * 1000;
+const lvlOf = n => { const k = +n.split(".")[1]; return k === 1 || k === 5 ? "easy" : k === 4 || k === 8 ? "ext" : "hard"; };
+// текстовые задачи (10 класс, теория чисел), написанные вручную по официальным решениям
+const TEXT = {};
+for (const m of ["easy", "hard", "ext"]) for (const p of P[m]) TEXT[p.y + "-" + p.n] = p;
+
+const KEY = "vsosh-v3";
+let S = { grade: 10, view: "train", topic: "nt", lvl: "easy", cur: {}, seen: {}, st: {}, vars: {} };
 try { const x = JSON.parse(localStorage.getItem(KEY)); if (x && x.st) S = Object.assign(S, x); } catch (e) {}
+try { const old = JSON.parse(localStorage.getItem("nt-vsosh-v2")); if (old && old.st) for (const k in old.st) S.st[k] = S.st[k] || old.st[k]; } catch (e) {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const plain = h => { const d = document.createElement("div"); d.innerHTML = h.replace(/<sup>/g, "^(").replace(/<\/sup>/g, ")").replace(/<sub>/g, "_").replace(/<\/p>/g, "\n"); return d.textContent; };
 const rnd = a => a[Math.floor(Math.random() * a.length)];
+let sample = null, imgOk = false, maxImg = 0, capsDone = false, ctl = null, photos = [], tick = null;
 
-let sample = null, imgOk = false, capsDone = false, ctl = null, photos = [], tick = null;
-
-// случайная задача: сначала нерешённые и ещё не показанные в этом круге
-function pick(lvl, exclude = []) {
-  const pool = P[lvl].filter(p => !exclude.includes(p.id));
-  const seen = S.seen[lvl] || [];
-  let cand = pool.filter(p => S.st[p.id] !== "ok" && !seen.includes(p.id));
-  if (!cand.length) { S.seen[lvl] = []; cand = pool.filter(p => S.st[p.id] !== "ok"); }
-  if (!cand.length) cand = pool;
-  const p = rnd(cand);
-  (S.seen[lvl] = S.seen[lvl] || []).push(p.id);
-  return p.id;
+// ---------- данные по классам (подгружаются по требованию)
+const loaded = {};
+function loadGrade(g) {
+  if (loaded[g]) return loaded[g];
+  return loaded[g] = new Promise((ok, bad) => {
+    const s = document.createElement("script"); s.src = "data/g" + g + ".js";
+    s.onload = () => ok(); s.onerror = () => bad(new Error("load")); document.head.append(s);
+  }).then(() => { for (const t of window.TASKS) if (TEXT[t.id]) Object.assign(t, { text: TEXT[t.id] }); index(); });
 }
+let BY = {};
+function index() {
+  BY = {};
+  for (const t of window.TASKS || []) BY[t.id] = t;
+  // задачи, для которых есть только текст (без картинки)
+  for (const id in TEXT) if (!BY[id]) { const p = TEXT[id]; BY[id] = { id, y: p.y, g: 10, n: p.n, lvl: lvlOf(p.n), topic: "nt", text: p, alt: plain(p.s) }; }
+}
+const tasks = () => Object.values(BY).filter(t => t.g === S.grade);
 
+// ---------- выбор задачи
+function pool(topic, lvl) { return tasks().filter(t => t.topic === topic && t.lvl === lvl); }
+function pick(topic, lvl, exclude = []) {
+  const all = pool(topic, lvl).filter(t => !exclude.includes(t.id));
+  if (!all.length) return null;
+  const sk = S.grade + topic + lvl, seen = S.seen[sk] || [];
+  let cand = all.filter(t => S.st[t.id] !== "ok" && !seen.includes(t.id));
+  if (!cand.length) { S.seen[sk] = []; cand = all.filter(t => S.st[t.id] !== "ok"); }
+  if (!cand.length) cand = all;
+  const t = rnd(cand); (S.seen[sk] = S.seen[sk] || []).push(t.id); return t.id;
+}
 function setStatus(id, v, force) {
   const order = { bad: 1, part: 2, ok: 3 };
   if (force || !S.st[id] || order[v] > order[S.st[id]]) S.st[id] = v;
-  save(); renderStats(); if (S.mode === "mock") renderMockbar();
+  save(); renderStats(); if (S.view === "var") renderVarbar();
 }
 
+// ---------- шапка
 function renderStats() {
-  const c = m => P[m].filter(p => S.st[p.id] === "ok").length + "/" + P[m].length;
-  $("stats").innerHTML = `<span>решено</span><span>лёгкий <b>${c("easy")}</b> · сложный <b>${c("hard")}</b> · экстр. <b>${c("ext")}</b></span>`;
+  const T = tasks(), c = f => T.filter(f).length;
+  const solved = c(t => S.st[t.id] === "ok");
+  $("stats").innerHTML = `<span>${S.grade} класс</span><span>решено <b>${solved}</b> из <b>${T.length}</b></span>`;
 }
-
-function current() {
-  if (S.mode === "mock") return S.mock ? BY[S.mock.ids[S.mock.i]] : null;
-  if (!S.cur[S.mode] || !BY[S.cur[S.mode]]) { S.cur[S.mode] = pick(S.mode); save(); }
-  return BY[S.cur[S.mode]];
+function renderControls() {
+  $("grades").innerHTML = [9, 10, 11].map(g => `<button class="chip" data-g="${g}" aria-pressed="${S.grade === g}">${g}</button>`).join("");
+  $("topics").innerHTML = Object.entries(TOP).map(([k, v]) => `<button class="chip" data-t="${k}" aria-pressed="${S.topic === k}">${v} <small style="color:var(--muted)">${tasks().filter(t => t.topic === k).length}</small></button>`).join("");
+  document.querySelectorAll("#views .mode").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === S.view));
+  document.querySelectorAll("#levels .mode").forEach(b => {
+    b.setAttribute("aria-pressed", b.dataset.m === S.lvl);
+    const n = pool(S.topic, b.dataset.m).length; b.disabled = !n; b.querySelector("small").textContent = (b.dataset.m === "easy" ? "задачи 1 и 5" : b.dataset.m === "hard" ? "задачи 2, 3, 6, 7" : "задачи 4 и 8") + " · " + n;
+  });
+  const train = S.view === "train";
+  $("topicbar").hidden = !train; $("levels").hidden = !train; $("mockbar").hidden = train;
 }
-
-function render() {
-  document.querySelectorAll(".mode").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === S.mode));
-  $("mockbar").hidden = S.mode !== "mock";
+async function render() {
   clearInterval(tick);
-  if (S.mode === "mock") { renderMockbar(); if (!S.mock) return renderMockStart(); if (S.mock.done) return renderMockSummary(); }
-  renderCard(current());
+  $("card").innerHTML = `<p class="note">Загружаю задачи ${S.grade} класса…</p>`;
+  try { await loadGrade(S.grade); } catch (e) { $("card").innerHTML = `<div class="verdict bad">Не удалось загрузить задачи. Обновите страницу.</div>`; return; }
+  if (!pool(S.topic, S.lvl).length) { const l = ["easy", "hard", "ext"].find(l => pool(S.topic, l).length); if (l) S.lvl = l; }
+  renderControls(); renderStats();
+  if (S.view === "var") return renderVar();
+  const ck = S.grade + S.topic + S.lvl;
+  if (!S.cur[ck] || !BY[S.cur[ck]]) { S.cur[ck] = pick(S.topic, S.lvl); save(); }
+  const t = BY[S.cur[ck]];
+  if (!t) { $("card").innerHTML = `<p class="note">В этой теме и уровне задач пока нет.</p>`; return; }
+  renderCard(t, true);
 }
 
-function renderCard(p) {
-  const st = S.st[p.id];
+// ---------- карточка задачи
+function statement(t) {
+  if (t.text) return `<div class="stmt">${t.text.s}</div>`;
+  const src = t.src || ("img/" + t.id + ".png");
+  return `<div class="paper"><img src="${src}" alt="${esc(t.alt)}" loading="lazy"></div>`;
+}
+function renderCard(t, train) {
+  const st = S.st[t.id], p = t.text;
   const stTxt = { ok: "решена", part: "верный ответ", bad: "не решена" }[st];
-  const answerUI = p.type === "proof"
-    ? `<p class="note">Задача на доказательство: загрузите фото решения ниже.</p>`
-    : `<form class="row" id="af"><input type="text" id="ans" autocomplete="off" aria-label="Ответ" placeholder="${p.type === "yn" ? "да или нет" : p.type === "num" ? "число (или несколько через запятую)" : "ваш ответ"}">
-       <button class="btn" type="submit">Проверить ответ</button></form><div id="av"></div>`;
-  const next = S.mode === "mock" ? "" : `<button class="btn ghost" id="nb">Другая задача →</button>`;
+  const answerUI = p && p.type !== "proof"
+    ? `<form class="row" id="af"><input type="text" id="ans" autocomplete="off" aria-label="Ответ" placeholder="${p.type === "yn" ? "да или нет" : p.type === "num" ? "число (или несколько через запятую)" : "ваш ответ"}">
+       <button class="btn" type="submit">Проверить ответ</button></form><div id="av"></div>` : "";
+  const next = train ? `<button class="btn ghost" id="nb">Другая задача →</button>` : "";
   $("card").innerHTML = `
-    <div class="src"><span class="pill ${p.lvl}">${LV[p.lvl]}</span><span>ВсОШ ${p.y} · заключительный этап · 10 класс · задача ${p.n}</span>${p.a ? `<span>автор: ${p.a}</span>` : ""}${st ? `<span class="pill st-${st}">${stTxt}</span>` : ""}</div>
-    <div class="stmt">${p.s}</div>
+    <div class="src"><span class="pill ${t.lvl}">${LV[t.lvl]}</span><span>ВсОШ ${t.y} · заключительный этап · ${t.g} класс · задача ${t.n}</span><span>${TOP[t.topic]}</span>${p && p.a ? `<span>автор: ${p.a}</span>` : ""}${st ? `<span class="pill st-${st}">${stTxt}</span>` : ""}</div>
+    ${statement(t)}
     ${answerUI}
     <div class="section"><h3>Проверка решения по фото</h3>
       <label class="drop" id="drop"><input type="file" id="file" accept="image/*" multiple><b>Загрузите фото решения</b><span>нажмите или перетащите; можно несколько страниц</span></label>
@@ -399,26 +457,25 @@ function renderCard(p) {
       <div id="out"></div>
     </div>
     <div class="section"><h3>Подсказка и решение</h3>
-      <div class="row"><button class="btn ghost" id="hb">Подсказка</button><a class="btn ghost" id="rb" href="${SOL}${encodeURIComponent(p.id)}.pdf" target="_blank" rel="noopener">Решение (PDF)</a>${next}</div>
-      <div class="box" id="hint" hidden><p>${p.h}</p></div>
+      <div class="row">${p ? `<button class="btn ghost" id="hb">Подсказка</button>` : ""}<a class="btn ghost" id="rb" href="${SOL}${encodeURIComponent(t.id)}.pdf" target="_blank" rel="noopener">Решение (PDF)</a>${next}</div>
+      ${p ? `<div class="box" id="hint" hidden><p>${p.h}</p></div>` : ""}
     </div>`;
   photos = [];
-  if (p.type !== "proof") $("af").onsubmit = e => { e.preventDefault(); checkAnswer(p); };
-  $("hb").onclick = () => { $("hint").hidden = !$("hint").hidden; };
-  $("rb").onclick = () => { if (!S.st[p.id]) setStatus(p.id, "bad"); };
-  if ($("nb")) $("nb").onclick = () => { S.cur[S.mode] = pick(S.mode, [p.id]); save(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  if ($("af")) $("af").onsubmit = e => { e.preventDefault(); checkAnswer(t); };
+  if ($("hb")) $("hb").onclick = () => { $("hint").hidden = !$("hint").hidden; };
+  $("rb").onclick = () => { if (!S.st[t.id]) setStatus(t.id, "bad"); };
+  if ($("nb")) $("nb").onclick = () => { const ck = S.grade + S.topic + S.lvl; S.cur[ck] = pick(S.topic, S.lvl, [t.id]) || t.id; save(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); };
   $("file").onchange = e => addPhotos(e.target.files);
   const drop = $("drop");
   drop.ondragover = e => { e.preventDefault(); drop.classList.add("over"); };
   drop.ondragleave = () => drop.classList.remove("over");
   drop.ondrop = e => { e.preventDefault(); drop.classList.remove("over"); addPhotos(e.dataTransfer.files); };
-  $("check").onclick = () => checkPhoto(p);
+  $("check").onclick = () => checkPhoto(t);
   $("stop").onclick = () => ctl?.abort();
   applyCaps();
 }
-
-function checkAnswer(p) {
-  const raw = $("ans").value.trim().toLowerCase();
+function checkAnswer(t) {
+  const p = t.text, raw = $("ans").value.trim().toLowerCase();
   if (!raw) return;
   let ok;
   if (p.type === "num") {
@@ -430,11 +487,11 @@ function checkAnswer(p) {
   $("av").innerHTML = ok
     ? `<div class="verdict ok">Ответ верный. За один ответ на ВсОШ дают не больше 1–2 баллов: загрузите фото обоснования.</div>`
     : `<div class="verdict bad">Неверно. Проверьте все случаи или откройте подсказку.</div>`;
-  if (ok) setStatus(p.id, "part"); else if (!S.st[p.id]) setStatus(p.id, "bad");
+  if (ok) setStatus(t.id, "part"); else if (!S.st[t.id]) setStatus(t.id, "bad");
 }
 
-// ---------- проверка по фото (работает в версии на claude.ai)
-function addPhotos(list) { for (const f of list) if (f.type.startsWith("image/") && photos.length < 6) photos.push(f); renderThumbs(); }
+// ---------- проверка по фото (только в версии на claude.ai)
+function addPhotos(list) { const lim = Math.max(1, (maxImg || 6) - 1); for (const f of list) if (f.type.startsWith("image/") && photos.length < lim) photos.push(f); renderThumbs(); }
 function renderThumbs() {
   const box = $("thumbs"); if (!box) return; box.innerHTML = "";
   photos.forEach((f, k) => {
@@ -463,25 +520,35 @@ const ERR = {
   invalid_json: "Ответ получился нечитаемым. Нажмите «Проверить решение» ещё раз.",
   refused: "Claude не стал проверять это изображение. Попробуйте более чёткое фото.",
 };
-async function checkPhoto(p) {
+async function stmtBlob(t) {
+  if (t.text) return null;
+  try { return await (await fetch(t.src || ("img/" + t.id + ".png"))).blob(); } catch (e) { return null; }
+}
+async function checkPhoto(t) {
   const out = $("out");
   ctl = new AbortController();
   $("check").disabled = true; $("stop").hidden = false;
   out.innerHTML = `<p class="note">Читаю решение… обычно 20–60 секунд.</p><div class="stream" id="stream"></div>`;
-  const prompt = `Ты — член жюри заключительного этапа Всероссийской олимпиады школьников по математике. Проверь рукописное решение школьника на фото (страницы по порядку).
+  const sb = await stmtBlob(t);
+  const imgs = sb ? [sb, ...photos] : [...photos];
+  const p = t.text;
+  const cond = p ? plain(p.s) : `${sb ? "условие — на первом изображении; " : ""}текст условия, распознанный из PDF (формулы могут быть искажены): ${t.alt}`;
+  const sol = p ? plain(p.r) : `Официальный ответ: ${t.ans || "—"}\nОфициальное решение (текст из PDF, формулы могут быть искажены): ${t.so}`;
+  const prompt = `Ты — член жюри заключительного этапа Всероссийской олимпиады школьников по математике. Проверь рукописное решение школьника.
+${sb ? "Первое изображение — условие задачи из официального сборника; остальные — страницы решения школьника по порядку." : "Изображения — страницы решения школьника по порядку."}
 
-Задача (ВсОШ ${p.y}, 10 класс, ${p.n}): ${plain(p.s)}
+Задача (ВсОШ ${t.y}, ${t.g} класс, ${t.n}): ${cond}
 
 Официальное решение (школьник его не видел; любые другие верные способы засчитываются полностью):
-${plain(p.r)}
+${sol}
 
-Критерии ВсОШ: 7 — полное верное решение; 6–5 — верно, мелкие недочёты; 4–3 — в целом верно, но существенный пробел (не разобран случай, нет обоснования ключевого шага); 2–1 — продвижение (верная идея, частный случай, верный ответ с примером без оценки); 0 — неверно или нет продвижения. Только верный ответ без обоснования — 0–1 балл. Будь строгим, как настоящее жюри.
+Критерии ВсОШ: 7 — полное верное решение; 6–5 — верно, мелкие недочёты; 4–3 — в целом верно, но существенный пробел; 2–1 — продвижение (верная идея, частный случай, верный ответ с примером без оценки); 0 — неверно или нет продвижения. Только верный ответ без обоснования — 0–1 балл. Будь строгим, как настоящее жюри.
 Если на фото не решение этой задачи или текст нечитаем — 0 баллов и скажи об этом.
 
 Ответь только JSON, по-русски, без LaTeX (пиши x², ≡, mod):
 {"score": 0-7, "verdict": "одна фраза — общий вывод", "good": ["что сделано верно"], "issues": ["конкретная ошибка или пробел и где она"], "next": "что исправить или дописать, 1–2 предложения"}`;
   try {
-    const r = await sample.json(prompt, { images: photos, modelTier: "complex", signal: ctl.signal, cache: false,
+    const r = await sample.json(prompt, { images: imgs, modelTier: "complex", signal: ctl.signal, cache: false,
       onText: ({ text }) => { const s = $("stream"); if (s) s.textContent = text; } });
     const sc = Math.max(0, Math.min(7, Math.round(Number(r.score) || 0)));
     const cls = sc >= 6 ? "ok" : sc >= 3 ? "part" : "bad";
@@ -491,53 +558,80 @@ ${plain(p.r)}
       ${li(r.good) ? `<div><h3 class="note">Верно</h3><ul>${li(r.good)}</ul></div>` : ""}
       ${li(r.issues) ? `<div><h3 class="note">Ошибки и пробелы</h3><ul>${li(r.issues)}</ul></div>` : ""}
       ${r.next ? `<p><b>Что дальше:</b> ${esc(r.next)}</p>` : ""}</div>`;
-    if (S.mock && S.mode === "mock") { S.mock.score[S.mock.i] = Math.max(S.mock.score[S.mock.i] || 0, sc); save(); }
-    setStatus(p.id, cls, cls === "ok");
+    if (S.view === "var") { const V = curVar(); if (V) { V.score[t.id] = Math.max(V.score[t.id] || 0, sc); save(); } }
+    setStatus(t.id, cls, cls === "ok");
   } catch (e) {
     out.innerHTML = e.code === "cancelled" ? `<p class="note">Проверка остановлена.</p>` : `<div class="verdict bad">${ERR[e.code] || "Не удалось проверить: сбой связи. Попробуйте ещё раз."}</div>`;
     if (["not_granted", "sampling_disabled", "images_unavailable"].includes(e.code)) imgOk = false;
   } finally { $("stop").hidden = true; renderThumbs(); }
 }
 
-// ---------- пробник: задачи 1–4 одного «дня», 4 часа
-const MOCK_MS = 4 * 3600 * 1000;
-function renderMockStart() {
+// ---------- пробник: настоящий вариант одного года (8 задач, 2 дня по 5 часов)
+const years = () => [...new Set(tasks().map(t => t.y))].filter(y => [1, 2, 3, 4, 5, 6, 7, 8].every(k => BY[y + "-" + S.grade + "." + k])).sort((a, b) => a - b);
+const curVar = () => S.vars[S.grade];
+function fmt(ms) { ms = Math.max(0, ms); const s = Math.floor(ms / 1000); return [Math.floor(s / 3600), Math.floor(s / 60) % 60, s % 60].map((x, k) => k ? String(x).padStart(2, "0") : x).join(":"); }
+function renderVar() {
+  const V = curVar();
+  if (!V) return renderVarStart();
+  renderVarbar();
+  if (V.done) return renderVarSummary();
+  const day = V.i < 4 ? 1 : 2;
+  if (!V.start[day]) {
+    $("card").innerHTML = `<h2 style="font:500 20px var(--f-display);margin:0">ВсОШ ${V.y}, ${S.grade} класс — ${day === 1 ? "первый" : "второй"} день</h2>
+      <p class="box">Задачи ${S.grade}.${day === 1 ? "1–" + S.grade + ".4" : "5–" + S.grade + ".8"}. На тур 5 часов, таймер запустится по кнопке. Решения сдаются фотографиями, каждая задача — до 7 баллов.</p>
+      <div class="row"><button class="btn" id="dstart">Начать ${day === 1 ? "первый" : "второй"} день</button></div>`;
+    $("dstart").onclick = () => { V.start[day] = Date.now(); save(); render(); };
+    return;
+  }
+  renderCard(BY[V.ids[V.i]], false);
+}
+function renderVarStart() {
   $("mockbar").innerHTML = "";
-  $("card").innerHTML = `<h2 style="font:500 20px var(--f-display);margin:0">Случайный пробник</h2>
-    <p class="box">Четыре задачи, как в одном туре заключительного этапа: задача 1 — лёгкая, 2 и 3 — сложные, 4 — экстремальная, все из разных лет. Время — 4 часа. Решения сдаются фотографиями, каждая задача оценивается из 7 баллов.</p>
-    <div class="row"><button class="btn" id="mstart">Начать пробник</button></div>`;
-  $("mstart").onclick = () => {
-    const ids = [pick("easy")]; const h1 = pick("hard"); ids.push(h1); ids.push(pick("hard", [h1])); ids.push(pick("ext"));
-    S.mock = { ids, i: 0, start: Date.now(), score: [null, null, null, null], done: false }; save(); render();
+  const Y = years();
+  $("card").innerHTML = `<h2 style="font:500 20px var(--f-display);margin:0">Пробник: вариант заключительного этапа</h2>
+    <p class="box">Все 8 задач ${S.grade} класса одного года, как на олимпиаде: первый день — задачи 1–4, второй — 5–8, на каждый день 5 часов. Максимум — 56 баллов.</p>
+    <div class="row"><select id="ysel" aria-label="Год"><option value="">Случайный год</option>${Y.map(y => `<option value="${y}">${y}</option>`).join("")}</select>
+    <button class="btn" id="vstart">Начать</button></div>
+    <p class="note">Доступно вариантов: ${Y.length}.</p>`;
+  $("vstart").onclick = () => {
+    const y = +$("ysel").value || rnd(Y);
+    S.vars[S.grade] = { y, ids: [1, 2, 3, 4, 5, 6, 7, 8].map(k => y + "-" + S.grade + "." + k), i: 0, start: {}, score: {}, done: false };
+    save(); render();
   };
 }
-function fmt(ms) { ms = Math.max(0, ms); const s = Math.floor(ms / 1000); return [Math.floor(s / 3600), Math.floor(s / 60) % 60, s % 60].map((x, k) => k ? String(x).padStart(2, "0") : x).join(":"); }
-function renderMockbar() {
-  const bar = $("mockbar");
-  if (S.mode !== "mock" || !S.mock) { bar.innerHTML = ""; return; }
-  const m = S.mock;
-  bar.innerHTML = m.ids.map((id, k) => `<button class="tab ${S.st[id] || ""}" data-k="${k}" aria-current="${!m.done && k === m.i}">№${k + 1}</button>`).join("")
-    + `<button class="btn ghost" id="mfin">${m.done ? "Новый пробник" : "Завершить"}</button><span class="timer" id="timer"></span>`;
-  bar.querySelectorAll(".tab").forEach(b => b.onclick = () => { m.i = +b.dataset.k; m.done = false; save(); render(); });
-  $("mfin").onclick = () => { if (m.done) { S.mock = null; } else m.done = true; save(); render(); };
-  const upd = () => { const left = MOCK_MS - (Date.now() - m.start); const t = $("timer"); if (t) t.textContent = left > 0 ? fmt(left) : "время вышло"; };
+function renderVarbar() {
+  const V = curVar(), bar = $("mockbar");
+  if (!V) { bar.innerHTML = ""; return; }
+  const tab = (id, k) => `<button class="tab ${S.st[id] || ""}" data-k="${k}" aria-current="${!V.done && k === V.i}">${S.grade}.${k + 1}</button>`;
+  bar.innerHTML = `<span class="daytitle">ВсОШ ${V.y}</span>` + V.ids.map(tab).join("")
+    + `<button class="btn ghost" id="mfin">${V.done ? "Новый вариант" : "Завершить"}</button><span class="timer" id="timer"></span>`;
+  bar.querySelectorAll(".tab").forEach(b => b.onclick = () => { V.i = +b.dataset.k; V.done = false; save(); render(); });
+  $("mfin").onclick = () => { if (V.done) delete S.vars[S.grade]; else V.done = true; save(); render(); };
+  const upd = () => {
+    const day = V.i < 4 ? 1 : 2, st = V.start[day], t = $("timer"); if (!t) return;
+    t.textContent = !st ? "" : (DAY_MS - (Date.now() - st) > 0 ? `день ${day}: ` + fmt(DAY_MS - (Date.now() - st)) : `день ${day}: время вышло`);
+  };
   upd(); clearInterval(tick); tick = setInterval(upd, 1000);
 }
-function renderMockSummary() {
-  const m = S.mock;
-  const rows = m.ids.map((id, k) => { const p = BY[id]; const sc = m.score[k]; return `<div class="line"><span>№${k + 1} · ВсОШ ${p.y}, ${p.n} · ${LV[p.lvl]}</span><b>${sc == null ? "—" : sc + " / 7"}</b></div>`; }).join("");
-  const total = m.score.reduce((a, b) => a + (b || 0), 0);
-  $("card").innerHTML = `<h2 style="font:500 20px var(--f-display);margin:0">Итог пробника</h2>
-    <div class="summary">${rows}<div class="line"><span>Сумма</span><b>${total} / 28</b></div></div>
-    <p class="note">Баллы ставятся только по проверенным фото. Затраченное время: ${fmt(Date.now() - m.start)}. Нажмите на номер задачи, чтобы открыть её и решение.</p>`;
+function renderVarSummary() {
+  const V = curVar();
+  const rows = V.ids.map(id => { const t = BY[id], sc = V.score[id]; return `<div class="line"><span>${t.n} · ${TOP[t.topic]} · ${LV[t.lvl]}</span><b>${sc == null ? "—" : sc + " / 7"}</b></div>`; }).join("");
+  const total = V.ids.reduce((a, id) => a + (V.score[id] || 0), 0);
+  $("card").innerHTML = `<h2 style="font:500 20px var(--f-display);margin:0">Итог: ВсОШ ${V.y}, ${S.grade} класс</h2>
+    <div class="summary">${rows}<div class="line"><span>Сумма</span><b>${total} / 56</b></div></div>
+    <p class="note">Баллы ставятся только по проверенным фото. Нажмите на номер задачи, чтобы вернуться к ней и открыть решение.</p>`;
 }
 
-document.querySelectorAll(".mode").forEach(b => b.onclick = () => { S.mode = b.dataset.m; save(); render(); });
-renderStats(); render();
+// ---------- события
+$("grades").onclick = e => { const b = e.target.closest("[data-g]"); if (!b) return; S.grade = +b.dataset.g; save(); render(); };
+$("topics").onclick = e => { const b = e.target.closest("[data-t]"); if (!b) return; S.topic = b.dataset.t; save(); render(); };
+document.querySelectorAll("#views .mode").forEach(b => b.onclick = () => { S.view = b.dataset.v; save(); render(); });
+document.querySelectorAll("#levels .mode").forEach(b => b.onclick = () => { S.lvl = b.dataset.m; save(); render(); });
+render();
 (async () => {
   try {
     sample = window.claude ? await window.claude.use("sample") : null;
-    if (sample) { const lim = await sample.limits().catch(() => null); imgOk = !!lim?.images; }
+    if (sample) { const lim = await sample.limits().catch(() => null); imgOk = !!lim?.images; maxImg = lim?.images?.maxCount || 0; }
   } catch (e) { sample = null; }
   capsDone = true; applyCaps();
 })();
