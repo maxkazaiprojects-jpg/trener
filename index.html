@@ -118,6 +118,11 @@ footer { color: var(--muted); font-size: 13px; display: grid; gap: 4px; }
 .view { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .view .mode small { white-space: normal; }
 .paper { background: #fff; border-radius: 10px; padding: 10px; }
+.stmt .eq { display: block; text-align: center; margin: 8px 0; }
+.stmt img.fx { vertical-align: middle; max-width: 100%; height: auto; }
+.stmt sup, .stmt sub { font-size: .7em; }
+.figbox { max-width: 360px; }
+img.scan { width: 100%; height: auto; display: block; }
 .paper img { display: block; width: 100%; height: auto; }
 select { font: 600 15px var(--f-body); background: var(--bg); color: var(--text); border: 2px solid var(--line); border-radius: 9px; padding: 9px 10px; }
 .day { display: grid; gap: 8px; }
@@ -435,9 +440,11 @@ async function render() {
 // ---------- карточка задачи
 function statement(t) {
   if (t.text) return `<div class="stmt">${t.text.s}</div>`;
-  const src = t.src || ("img/" + t.id + ".png");
-  return `<div class="paper"><img src="${src}" alt="${esc(t.alt)}" loading="lazy"></div>`;
+  if (t.mode === "img") return `<img class="scan" src="${t.srcd || ("imgd/" + t.id + ".png")}" alt="${esc(t.alt)}">`;
+  const fig = t.fig ? `<div class="paper figbox"><img src="${t.figsrc || ("fig/" + t.id + ".png")}" alt="Рисунок к задаче"></div>` : "";
+  return `<div class="stmt">${t.html}</div>${fig}`;
 }
+const stmtPlain = t => { const d = document.createElement("div"); d.innerHTML = (t.html || "").replace(/<sup>/g, "^(").replace(/<\/sup>/g, ")").replace(/<sub>/g, "_(").replace(/<\/sub>/g, ")").replace(/<img[^>]*>/g, " [формула] "); return d.textContent; };
 function renderCard(t, train) {
   const st = S.st[t.id], p = t.text;
   const stTxt = { ok: "решена", part: "верный ответ", bad: "не решена" }[st];
@@ -446,7 +453,7 @@ function renderCard(t, train) {
        <button class="btn" type="submit">Проверить ответ</button></form><div id="av"></div>` : "";
   const next = train ? `<button class="btn ghost" id="nb">Другая задача →</button>` : "";
   $("card").innerHTML = `
-    <div class="src"><span class="pill ${t.lvl}">${LV[t.lvl]}</span><span>ВсОШ ${t.y} · заключительный этап · ${t.g} класс · задача ${t.n}</span><span>${TOP[t.topic]}</span>${p && p.a ? `<span>автор: ${p.a}</span>` : ""}${st ? `<span class="pill st-${st}">${stTxt}</span>` : ""}</div>
+    <div class="src"><span class="pill ${t.lvl}">${LV[t.lvl]}</span><span>ВсОШ ${t.y} · заключительный этап · ${t.g} класс · задача ${t.n}</span><span>${TOP[t.topic]}</span>${(p && p.a) || t.author ? `<span>автор: ${esc((p && p.a) || t.author)}</span>` : ""}${st ? `<span class="pill st-${st}">${stTxt}</span>` : ""}</div>
     ${statement(t)}
     ${answerUI}
     <div class="section"><h3>Проверка решения по фото</h3>
@@ -520,9 +527,16 @@ const ERR = {
   invalid_json: "Ответ получился нечитаемым. Нажмите «Проверить решение» ещё раз.",
   refused: "Claude не стал проверять это изображение. Попробуйте более чёткое фото.",
 };
+// картинка условия для проверки: только для задач со сложными формулами (светлый текст рисуем на тёмном фоне)
 async function stmtBlob(t) {
-  if (t.text) return null;
-  try { return await (await fetch(t.src || ("img/" + t.id + ".png"))).blob(); } catch (e) { return null; }
+  if (t.text || t.mode === "text") return null;
+  const src = t.srcd || (t.mode === "img" ? "imgd/" + t.id + ".png" : "img/" + t.id + ".png");
+  try {
+    const im = new Image(); im.src = src; await im.decode();
+    const c = document.createElement("canvas"); c.width = im.naturalWidth; c.height = im.naturalHeight;
+    const g = c.getContext("2d"); g.fillStyle = "#12141c"; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0);
+    return await new Promise(r => c.toBlob(r, "image/png"));
+  } catch (e) { return null; }
 }
 async function checkPhoto(t) {
   const out = $("out");
@@ -532,7 +546,7 @@ async function checkPhoto(t) {
   const sb = await stmtBlob(t);
   const imgs = sb ? [sb, ...photos] : [...photos];
   const p = t.text;
-  const cond = p ? plain(p.s) : `${sb ? "условие — на первом изображении; " : ""}текст условия, распознанный из PDF (формулы могут быть искажены): ${t.alt}`;
+  const cond = p ? plain(p.s) : t.html && t.mode !== "img" ? stmtPlain(t) + (t.mode === "fx" ? `\n(Формулы, помеченные [формула], в текстовом виде из PDF: ${t.alt})` : "") : `${sb ? "условие — на первом изображении; " : ""}текст условия из PDF (формулы могут быть искажены): ${t.alt}`;
   const sol = p ? plain(p.r) : `Официальный ответ: ${t.ans || "—"}\nОфициальное решение (текст из PDF, формулы могут быть искажены): ${t.so}`;
   const prompt = `Ты — член жюри заключительного этапа Всероссийской олимпиады школьников по математике. Проверь рукописное решение школьника.
 ${sb ? "Первое изображение — условие задачи из официального сборника; остальные — страницы решения школьника по порядку." : "Изображения — страницы решения школьника по порядку."}
