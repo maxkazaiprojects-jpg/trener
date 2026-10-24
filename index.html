@@ -376,7 +376,7 @@ const loaded = {};
 function loadGrade(g) {
   if (loaded[g]) return loaded[g];
   return loaded[g] = new Promise((ok, bad) => {
-    const s = document.createElement("script"); s.src = "data/g" + g + ".js";
+    const s = document.createElement("script"); s.src = "data/g" + g + ".js?v=9ce35eba";
     s.onload = () => ok(); s.onerror = () => bad(new Error("load")); document.head.append(s);
   }).then(() => { for (const t of window.TASKS) if (TEXT[t.id]) Object.assign(t, { text: TEXT[t.id] }); index(); });
 }
