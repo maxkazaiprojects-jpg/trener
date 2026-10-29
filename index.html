@@ -6,6 +6,9 @@
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Тренажёр ВсОШ</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Golos+Text:wght@400;500;600&family=PT+Serif:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
@@ -121,6 +124,9 @@ footer { color: var(--muted); font-size: 13px; display: grid; gap: 4px; }
 .stmt .eq { display: block; text-align: center; margin: 8px 0; }
 .stmt img.fx { vertical-align: middle; max-width: 100%; height: auto; }
 .stmt sup, .stmt sub { font-size: .7em; }
+.stmt .katex { font-size: 1.08em; }
+.stmt .nw { white-space: nowrap; }
+.stmt .katex-display { margin: .6em 0; overflow-x: auto; overflow-y: hidden; }
 .figbox { max-width: 360px; }
 img.scan { width: 100%; height: auto; display: block; }
 .paper img { display: block; width: 100%; height: auto; }
@@ -376,7 +382,7 @@ const loaded = {};
 function loadGrade(g) {
   if (loaded[g]) return loaded[g];
   return loaded[g] = new Promise((ok, bad) => {
-    const s = document.createElement("script"); s.src = "data/g" + g + ".js?v=9ce35eba";
+    const s = document.createElement("script"); s.src = "data/g" + g + ".js?v=efb17f90";
     s.onload = () => ok(); s.onerror = () => bad(new Error("load")); document.head.append(s);
   }).then(() => { for (const t of window.TASKS) if (TEXT[t.id]) Object.assign(t, { text: TEXT[t.id] }); index(); });
 }
@@ -438,6 +444,10 @@ async function render() {
 }
 
 // ---------- карточка задачи
+// формулы KaTeX: \( … \) и \[ … \] в условиях; карточка перерисовывается часто, поэтому — наблюдатель
+function typeset(root) { if (window.renderMathInElement) root.querySelectorAll(".stmt:not([data-tex])").forEach(e => { e.dataset.tex = 1; renderMathInElement(e, { delimiters: [{ left: "\\[", right: "\\]", display: true }, { left: "\\(", right: "\\)", display: false }], throwOnError: false }); }); }
+new MutationObserver(() => typeset(document.body)).observe(document.body, { childList: true, subtree: true });
+addEventListener("load", () => typeset(document.body));
 function statement(t) {
   if (t.text) return `<div class="stmt">${t.text.s}</div>`;
   if (t.mode === "img") return `<img class="scan" src="${t.srcd || ("imgd/" + t.id + ".png")}" alt="${esc(t.alt)}">`;
